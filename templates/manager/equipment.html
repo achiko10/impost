@@ -1,0 +1,441 @@
+{% extends 'manager/base.html' %}
+
+{% block title %}მოწყობილობები{% endblock %}
+
+{% block extra_css %}
+<style>
+    .category-card {
+        border-radius: 12px;
+        overflow: hidden;
+        transition: all 0.3s ease;
+        border: none;
+        box-shadow: 0 2px 8px rgba(0,0,0,0.08);
+    }
+    .category-card:hover {
+        transform: translateY(-3px);
+        box-shadow: 0 8px 25px rgba(0,0,0,0.12);
+    }
+    .category-header {
+        padding: 15px 20px;
+        color: white;
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+    }
+    .category-header h5 {
+        margin: 0;
+        font-weight: 600;
+    }
+    .category-header .badge {
+        background: rgba(255,255,255,0.25);
+        font-size: 14px;
+    }
+    .equipment-item {
+        padding: 12px 20px;
+        border-bottom: 1px solid #f0f0f0;
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        transition: background 0.2s;
+    }
+    .equipment-item:hover {
+        background: #f8f9fa;
+    }
+    .equipment-item:last-child {
+        border-bottom: none;
+    }
+    .equipment-info {
+        display: flex;
+        align-items: center;
+        gap: 15px;
+    }
+    .equipment-icon {
+        width: 45px;
+        height: 45px;
+        border-radius: 10px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 20px;
+        color: white;
+    }
+    .equipment-details h6 {
+        margin: 0 0 3px 0;
+        font-weight: 600;
+    }
+    .equipment-details small {
+        color: #6c757d;
+    }
+    .status-dot {
+        width: 10px;
+        height: 10px;
+        border-radius: 50%;
+        display: inline-block;
+        margin-right: 5px;
+    }
+    .status-active { background: #198754; }
+    .status-inactive { background: #6c757d; }
+    .status-maintenance { background: #ffc107; }
+    .status-broken { background: #dc3545; }
+    .filter-pills {
+        display: flex;
+        gap: 8px;
+        flex-wrap: wrap;
+        margin-bottom: 20px;
+    }
+    .filter-pill {
+        padding: 6px 16px;
+        border-radius: 20px;
+        border: 1px solid #dee2e6;
+        background: white;
+        cursor: pointer;
+        transition: all 0.2s;
+        font-size: 14px;
+    }
+    .filter-pill:hover, .filter-pill.active {
+        background: #0d6efd;
+        color: white;
+        border-color: #0d6efd;
+    }
+    .stats-row {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+        gap: 15px;
+        margin-bottom: 25px;
+    }
+    .stat-box {
+        background: white;
+        padding: 15px 20px;
+        border-radius: 10px;
+        box-shadow: 0 2px 8px rgba(0,0,0,0.06);
+        text-align: center;
+    }
+    .stat-box h3 {
+        margin: 0;
+        font-size: 28px;
+        font-weight: 700;
+    }
+    .stat-box small {
+        color: #6c757d;
+    }
+    .no-equipment {
+        padding: 30px;
+        text-align: center;
+        color: #6c757d;
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="d-flex justify-content-between align-items-center mb-4">
+    <div>
+        <h2><i class="bi bi-gear-fill me-2"></i>მოწყობილობები</h2>
+        <p class="text-muted mb-0">სულ: {{ equipment_list.count }} მოწყობილობა {{ categories.count }} კატეგორიაში</p>
+    </div>
+    <div>
+        <button class="btn btn-outline-primary me-2" data-bs-toggle="modal" data-bs-target="#categoryModal">
+            <i class="bi bi-folder-plus"></i> კატეგორია
+        </button>
+        <button class="btn btn-success" data-bs-toggle="modal" data-bs-target="#addModal">
+            <i class="bi bi-plus-circle"></i> მოწყობილობა
+        </button>
+    </div>
+</div>
+
+<!-- Statistics -->
+<div class="stats-row">
+    <div class="stat-box">
+        <h3 style="color: #198754;">{{ stats.active }}</h3>
+        <small><span class="status-dot status-active"></span>აქტიური</small>
+    </div>
+    <div class="stat-box">
+        <h3 style="color: #ffc107;">{{ stats.maintenance }}</h3>
+        <small><span class="status-dot status-maintenance"></span>მომსახურებაში</small>
+    </div>
+    <div class="stat-box">
+        <h3 style="color: #dc3545;">{{ stats.broken }}</h3>
+        <small><span class="status-dot status-broken"></span>გაფუჭებული</small>
+    </div>
+    <div class="stat-box">
+        <h3 style="color: #6c757d;">{{ stats.inactive }}</h3>
+        <small><span class="status-dot status-inactive"></span>არააქტიური</small>
+    </div>
+</div>
+
+<!-- Filter Pills -->
+<div class="filter-pills">
+    <span class="filter-pill active" onclick="filterCategory('')">ყველა</span>
+    {% for cat in categories %}
+    <span class="filter-pill" onclick="filterCategory('{{ cat.id }}')" style="border-color: {{ cat.color }};">
+        <i class="{{ cat.icon }}" style="color: {{ cat.color }};"></i> {{ cat.name }}
+    </span>
+    {% endfor %}
+</div>
+
+<!-- Equipment by Category -->
+<div class="row" id="equipment-container">
+    {% for cat in categories %}
+    {% with cat_equipment=cat.equipment.all %}
+    {% if cat_equipment %}
+    <div class="col-12 mb-4 category-section" data-category="{{ cat.id }}">
+        <div class="category-card">
+            <div class="category-header" style="background: {{ cat.color }};">
+                <h5><i class="{{ cat.icon }} me-2"></i>{{ cat.name }}</h5>
+                <span class="badge">{{ cat_equipment.count }} მოწყობილობა</span>
+            </div>
+            <div class="category-body bg-white">
+                {% for eq in cat_equipment %}
+                <div class="equipment-item">
+                    <div class="equipment-info">
+                        <div class="equipment-icon" style="background: {{ cat.color }}20; color: {{ cat.color }};">
+                            <i class="{{ cat.icon }}"></i>
+                        </div>
+                        <div class="equipment-details">
+                            <h6>{{ eq.name }}</h6>
+                            <small>
+                                <i class="bi bi-building me-1"></i>{{ eq.site.name }}
+                                {% if eq.brand %}<span class="mx-2">|</span><i class="bi bi-tag me-1"></i>{{ eq.brand }}{% endif %}
+                                {% if eq.location_detail %}<span class="mx-2">|</span><i class="bi bi-geo-alt me-1"></i>{{ eq.location_detail }}{% endif %}
+                            </small>
+                        </div>
+                    </div>
+                    <div class="d-flex align-items-center gap-2">
+                        <span class="badge" style="background: {% if eq.status == 'active' %}#198754{% elif eq.status == 'maintenance' %}#ffc107{% elif eq.status == 'broken' %}#dc3545{% else %}#6c757d{% endif %};">
+                            {{ eq.get_status_display }}
+                        </span>
+                        <div class="btn-group btn-group-sm">
+                            <button class="btn btn-outline-primary" onclick="editEquipment({{ eq.id }})" title="რედაქტირება">
+                                <i class="bi bi-pencil"></i>
+                            </button>
+                            <a href="{% url 'equipment_delete' eq.id %}" class="btn btn-outline-danger" 
+                               onclick="return confirm('წაშლა დარწმუნებული ხარ?')" title="წაშლა">
+                                <i class="bi bi-trash"></i>
+                            </a>
+                        </div>
+                    </div>
+                </div>
+                {% endfor %}
+            </div>
+        </div>
+    </div>
+    {% endif %}
+    {% endwith %}
+    {% endfor %}
+
+    <!-- Uncategorized Equipment -->
+    {% if uncategorized %}
+    <div class="col-12 mb-4 category-section" data-category="none">
+        <div class="category-card">
+            <div class="category-header" style="background: #6c757d;">
+                <h5><i class="bi bi-question-circle me-2"></i>კატეგორიის გარეშე</h5>
+                <span class="badge">{{ uncategorized.count }} მოწყობილობა</span>
+            </div>
+            <div class="category-body bg-white">
+                {% for eq in uncategorized %}
+                <div class="equipment-item">
+                    <div class="equipment-info">
+                        <div class="equipment-icon" style="background: #6c757d20; color: #6c757d;">
+                            <i class="bi bi-gear"></i>
+                        </div>
+                        <div class="equipment-details">
+                            <h6>{{ eq.name }}</h6>
+                            <small>
+                                <i class="bi bi-building me-1"></i>{{ eq.site.name }}
+                                {% if eq.brand %}<span class="mx-2">|</span>{{ eq.brand }}{% endif %}
+                            </small>
+                        </div>
+                    </div>
+                    <div class="d-flex align-items-center gap-2">
+                        <span class="badge bg-secondary">{{ eq.get_status_display }}</span>
+                        <div class="btn-group btn-group-sm">
+                            <button class="btn btn-outline-primary" onclick="editEquipment({{ eq.id }})">
+                                <i class="bi bi-pencil"></i>
+                            </button>
+                            <a href="{% url 'equipment_delete' eq.id %}" class="btn btn-outline-danger"
+                               onclick="return confirm('წაშლა დარწმუნებული ხარ?')">
+                                <i class="bi bi-trash"></i>
+                            </a>
+                        </div>
+                    </div>
+                </div>
+                {% endfor %}
+            </div>
+        </div>
+    </div>
+    {% endif %}
+</div>
+
+<!-- Add Equipment Modal -->
+<div class="modal fade" id="addModal" tabindex="-1">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+            <div class="modal-header bg-success text-white">
+                <h5 class="modal-title"><i class="bi bi-plus-circle me-2"></i>ახალი მოწყობილობა</h5>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+            </div>
+            <form method="POST" action="{% url 'equipment_create' %}">
+                {% csrf_token %}
+                <div class="modal-body">
+                    <div class="row mb-3">
+                        <div class="col-md-6">
+                            <label class="form-label">ობიექტი *</label>
+                            <select name="site" class="form-select" required>
+                                <option value="">აირჩიე...</option>
+                                {% for site in sites %}
+                                <option value="{{ site.id }}">{{ site.company.name }} - {{ site.name }}</option>
+                                {% endfor %}
+                            </select>
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label">კატეგორია *</label>
+                            <select name="category" class="form-select" required>
+                                <option value="">აირჩიე...</option>
+                                {% for cat in categories %}
+                                <option value="{{ cat.id }}">{{ cat.name }}</option>
+                                {% endfor %}
+                            </select>
+                        </div>
+                    </div>
+                    <div class="row mb-3">
+                        <div class="col-md-8">
+                            <label class="form-label">სახელი *</label>
+                            <input type="text" name="name" class="form-control" required placeholder="მაგ: Rooftop #1">
+                        </div>
+                        <div class="col-md-4">
+                            <label class="form-label">სტატუსი</label>
+                            <select name="status" class="form-select">
+                                <option value="active">აქტიური</option>
+                                <option value="inactive">არააქტიური</option>
+                                <option value="maintenance">მომსახურებაში</option>
+                                <option value="broken">გაფუჭებული</option>
+                            </select>
+                        </div>
+                    </div>
+                    <div class="row mb-3">
+                        <div class="col-md-4">
+                            <label class="form-label">ბრენდი</label>
+                            <input type="text" name="brand" class="form-control" placeholder="მაგ: Carrier">
+                        </div>
+                        <div class="col-md-4">
+                            <label class="form-label">მოდელი</label>
+                            <input type="text" name="model_number" class="form-control">
+                        </div>
+                        <div class="col-md-4">
+                            <label class="form-label">სერიული ნომერი</label>
+                            <input type="text" name="serial_number" class="form-control">
+                        </div>
+                    </div>
+                    <div class="row mb-3">
+                        <div class="col-md-4">
+                            <label class="form-label">მდებარეობა</label>
+                            <input type="text" name="location_detail" class="form-control" placeholder="მაგ: სახურავი">
+                        </div>
+                        <div class="col-md-4">
+                            <label class="form-label">ინსტალაციის თარიღი</label>
+                            <input type="date" name="installation_date" class="form-control">
+                        </div>
+                        <div class="col-md-4">
+                            <label class="form-label">გარანტიის ვადა</label>
+                            <input type="date" name="warranty_end" class="form-control">
+                        </div>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">შენიშვნები</label>
+                        <textarea name="notes" class="form-control" rows="2"></textarea>
+                    </div>
+                    <input type="hidden" name="system_type" value="heating_cooling">
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">გაუქმება</button>
+                    <button type="submit" class="btn btn-success">
+                        <i class="bi bi-check-circle me-1"></i>შენახვა
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<!-- Add Category Modal -->
+<div class="modal fade" id="categoryModal" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header bg-primary text-white">
+                <h5 class="modal-title"><i class="bi bi-folder-plus me-2"></i>ახალი კატეგორია</h5>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+            </div>
+            <form method="POST" action="{% url 'category_create' %}">
+                {% csrf_token %}
+                <div class="modal-body">
+                    <div class="mb-3">
+                        <label class="form-label">სახელი *</label>
+                        <input type="text" name="name" class="form-control" required placeholder="მაგ: Chillers">
+                    </div>
+                    <div class="row mb-3">
+                        <div class="col-md-6">
+                            <label class="form-label">კოდი *</label>
+                            <input type="text" name="code" class="form-control" required placeholder="მაგ: CHL" maxlength="20">
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label">სისტემის ტიპი</label>
+                            <select name="system_type" class="form-select">
+                                <option value="hvac">HVAC</option>
+                                <option value="ventilation">ვენტილაცია</option>
+                                <option value="refrigeration">სამაცივრო</option>
+                                <option value="electrical">ელექტრო</option>
+                                <option value="plumbing">სანტექნიკა</option>
+                                <option value="other">სხვა</option>
+                            </select>
+                        </div>
+                    </div>
+                    <div class="row mb-3">
+                        <div class="col-md-6">
+                            <label class="form-label">აიქონი</label>
+                            <select name="icon" class="form-select">
+                                <option value="bi-gear">⚙️ Gear</option>
+                                <option value="bi-fan">🌀 Fan</option>
+                                <option value="bi-snow">❄️ Snow</option>
+                                <option value="bi-fire">🔥 Fire</option>
+                                <option value="bi-thermometer">🌡️ Thermometer</option>
+                                <option value="bi-building">🏢 Building</option>
+                                <option value="bi-lightning">⚡ Lightning</option>
+                                <option value="bi-droplet">💧 Droplet</option>
+                            </select>
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label">ფერი</label>
+                            <input type="color" name="color" class="form-control form-control-color w-100" value="#0d6efd">
+                        </div>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">გაუქმება</button>
+                    <button type="submit" class="btn btn-primary">შენახვა</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+function filterCategory(categoryId) {
+    document.querySelectorAll('.filter-pill').forEach(p => p.classList.remove('active'));
+    event.target.classList.add('active');
+    
+    document.querySelectorAll('.category-section').forEach(section => {
+        if (!categoryId || section.dataset.category === categoryId) {
+            section.style.display = 'block';
+        } else {
+            section.style.display = 'none';
+        }
+    });
+}
+
+function editEquipment(id) {
+    // TODO: Implement edit modal
+    window.location.href = '/admin/companies/equipment/' + id + '/change/';
+}
+</script>
+{% endblock %}

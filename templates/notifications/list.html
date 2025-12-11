@@ -1,0 +1,137 @@
+{% extends 'manager/base.html' %}
+
+{% block title %}შეტყობინებები{% endblock %}
+
+{% block content %}
+<div class="d-flex justify-content-between align-items-center mb-4">
+    <h2><i class="bi bi-bell"></i> შეტყობინებები</h2>
+    <div>
+        <span class="badge bg-primary me-2">{{ unread_count }} წაუკითხავი</span>
+        <button class="btn btn-outline-primary btn-sm" onclick="markAllRead()">
+            <i class="bi bi-check-all"></i> ყველას წაკითხულად მონიშვნა
+        </button>
+    </div>
+</div>
+
+<div class="card">
+    <div class="list-group list-group-flush">
+        {% for notification in notifications %}
+        <div class="list-group-item {% if not notification.is_read %}bg-light{% endif %}" id="notif-{{ notification.id }}">
+            <div class="d-flex justify-content-between align-items-start">
+                <div class="d-flex align-items-start">
+                    <div class="me-3">
+                        {% if notification.notification_type == 'task_assigned' %}
+                        <i class="bi bi-person-plus text-primary fs-4"></i>
+                        {% elif notification.notification_type == 'task_due' %}
+                        <i class="bi bi-clock text-warning fs-4"></i>
+                        {% elif notification.notification_type == 'task_overdue' %}
+                        <i class="bi bi-exclamation-triangle text-danger fs-4"></i>
+                        {% elif notification.notification_type == 'task_completed' %}
+                        <i class="bi bi-check-circle text-success fs-4"></i>
+                        {% elif notification.notification_type == 'task_approved' %}
+                        <i class="bi bi-hand-thumbs-up text-success fs-4"></i>
+                        {% elif notification.notification_type == 'task_rejected' %}
+                        <i class="bi bi-x-circle text-danger fs-4"></i>
+                        {% else %}
+                        <i class="bi bi-info-circle text-info fs-4"></i>
+                        {% endif %}
+                    </div>
+                    <div>
+                        <h6 class="mb-1">{{ notification.title }}</h6>
+                        <p class="mb-1 text-muted">{{ notification.message }}</p>
+                        <small class="text-muted">{{ notification.created_at|timesince }} წინ</small>
+                    </div>
+                </div>
+                <div class="btn-group">
+                    {% if notification.link %}
+                    <a href="{{ notification.link }}" class="btn btn-sm btn-outline-primary">
+                        <i class="bi bi-eye"></i>
+                    </a>
+                    {% endif %}
+                    {% if not notification.is_read %}
+                    <button class="btn btn-sm btn-outline-success" onclick="markRead({{ notification.id }})">
+                        <i class="bi bi-check"></i>
+                    </button>
+                    {% endif %}
+                    <button class="btn btn-sm btn-outline-danger" onclick="deleteNotif({{ notification.id }})">
+                        <i class="bi bi-trash"></i>
+                    </button>
+                </div>
+            </div>
+        </div>
+        {% empty %}
+        <div class="list-group-item text-center text-muted py-5">
+            <i class="bi bi-bell-slash fs-1"></i>
+            <p class="mt-2">შეტყობინებები არ არის</p>
+        </div>
+        {% endfor %}
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+function getCookie(name) {
+    let cookieValue = null;
+    if (document.cookie && document.cookie !== '') {
+        const cookies = document.cookie.split(';');
+        for (let i = 0; i < cookies.length; i++) {
+            const cookie = cookies[i].trim();
+            if (cookie.substring(0, name.length + 1) === (name + '=')) {
+                cookieValue = decodeURIComponent(cookie.substring(name.length + 1));
+                break;
+            }
+        }
+    }
+    return cookieValue;
+}
+
+function markRead(id) {
+    fetch(`/api/notifications/${id}/read/`, {
+        method: 'POST',
+        headers: {
+            'X-CSRFToken': getCookie('csrftoken')
+        }
+    })
+    .then(r => r.json())
+    .then(data => {
+        if (data.success) {
+            document.getElementById(`notif-${id}`).classList.remove('bg-light');
+            location.reload();
+        }
+    });
+}
+
+function markAllRead() {
+    fetch('/api/notifications/mark-all-read/', {
+        method: 'POST',
+        headers: {
+            'X-CSRFToken': getCookie('csrftoken')
+        }
+    })
+    .then(r => r.json())
+    .then(data => {
+        if (data.success) {
+            location.reload();
+        }
+    });
+}
+
+function deleteNotif(id) {
+    if (confirm('წაშალოთ შეტყობინება?')) {
+        fetch(`/api/notifications/${id}/delete/`, {
+            method: 'POST',
+            headers: {
+                'X-CSRFToken': getCookie('csrftoken')
+            }
+        })
+        .then(r => r.json())
+        .then(data => {
+            if (data.success) {
+                document.getElementById(`notif-${id}`).remove();
+            }
+        });
+    }
+}
+</script>
+{% endblock %}

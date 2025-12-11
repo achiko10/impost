@@ -1,0 +1,504 @@
+{% extends 'base/base.html' %}
+
+{% block title %}მენეჯერის პანელი{% endblock %}
+
+{% block content %}
+<div class="row mb-4">
+    <div class="col">
+        <h2><i class="bi bi-briefcase"></i> მენეჯერის პანელი</h2>
+    </div>
+    <div class="col text-end">
+        <a href="/calendar/" class="btn btn-primary">
+            <i class="bi bi-calendar3"></i> კალენდარი
+        </a>
+    </div>
+</div>
+
+<!-- Statistics Cards -->
+<div class="row mb-4">
+    <div class="col-md-3">
+        <div class="card bg-primary text-white">
+            <div class="card-body text-center">
+                <h6>კომპანიები</h6>
+                <h2>{{ companies_count }}</h2>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-3">
+        <div class="card bg-success text-white">
+            <div class="card-body text-center">
+                <h6>ობიექტები</h6>
+                <h2>{{ sites_count }}</h2>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-3">
+        <div class="card bg-info text-white">
+            <div class="card-body text-center">
+                <h6>დანადგარები</h6>
+                <h2>{{ equipment_count }}</h2>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-3">
+        <div class="card bg-warning text-white">
+            <div class="card-body text-center">
+                <h6>დავალებები</h6>
+                <h2>{{ tasks_count }}</h2>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Reports Section -->
+<div class="row mb-4">
+    <div class="col">
+        <div class="card bg-light">
+            <div class="card-body">
+                <h5><i class="bi bi-file-earmark-pdf"></i> რეპორტები</h5>
+                <div class="btn-group" role="group">
+                    <a href="/reports/pdf/1/" class="btn btn-danger" target="_blank">
+                        <i class="bi bi-file-pdf"></i> PDF რეპორტი
+                    </a>
+                    <a href="/reports/excel/" class="btn btn-success">
+                        <i class="bi bi-file-earmark-excel"></i> Excel Export
+                    </a>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Main Tabs -->
+<ul class="nav nav-tabs mb-4" role="tablist">
+    <li class="nav-item">
+        <a class="nav-link active" data-bs-toggle="tab" href="#companies-tab">
+            <i class="bi bi-building"></i> კომპანიები
+        </a>
+    </li>
+    <li class="nav-item">
+        <a class="nav-link" data-bs-toggle="tab" href="#sites-tab">
+            <i class="bi bi-geo-alt"></i> ობიექტები
+        </a>
+    </li>
+    <li class="nav-item">
+        <a class="nav-link" data-bs-toggle="tab" href="#equipment-tab">
+            <i class="bi bi-gear"></i> დანადგარები
+        </a>
+    </li>
+    <li class="nav-item">
+        <a class="nav-link" data-bs-toggle="tab" href="#schedules-tab">
+            <i class="bi bi-calendar-check"></i> შემოწმებები
+        </a>
+    </li>
+    <li class="nav-item">
+        <a class="nav-link" data-bs-toggle="tab" href="#tasks-tab">
+            <i class="bi bi-list-task"></i> დავალებები
+        </a>
+    </li>
+    <li class="nav-item">
+        <a class="nav-link" data-bs-toggle="tab" href="#inspectors-tab">
+            <i class="bi bi-people"></i> ინსპექტორები
+        </a>
+    </li>
+</ul>
+
+<div class="tab-content">
+    <!-- Companies Tab -->
+    <div class="tab-pane fade show active" id="companies-tab">
+        <div class="card mb-3">
+            <div class="card-header bg-primary text-white">
+                <h5><i class="bi bi-plus-circle"></i> ახალი კომპანია</h5>
+            </div>
+            <div class="card-body">
+                <form method="POST" action="/companies/create/">
+                    {% csrf_token %}
+                    <div class="row">
+                        <div class="col-md-8">
+                            <input type="text" name="name" class="form-control" placeholder="კომპანიის სახელი" required>
+                        </div>
+                        <div class="col-md-4">
+                            <button type="submit" class="btn btn-primary w-100">
+                                <i class="bi bi-check"></i> დამატება
+                            </button>
+                        </div>
+                    </div>
+                </form>
+            </div>
+        </div>
+        
+        <div class="card">
+            <div class="card-body">
+                <table class="table">
+                    <thead>
+                        <tr>
+                            <th>კომპანია</th>
+                            <th>შექმნის თარიღი</th>
+                            <th>მოქმედებები</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for company in companies %}
+                        <tr>
+                            <td><strong>{{ company.name }}</strong></td>
+                            <td>{{ company.created_at|date:"d M Y" }}</td>
+                            <td>
+                                <a href="/companies/{{ company.id }}/delete/" class="btn btn-sm btn-danger" 
+                                   onclick="return confirm('დარწმუნებული ხართ?')">
+                                    <i class="bi bi-trash"></i> წაშლა
+                                </a>
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+
+    <!-- Sites Tab -->
+    <div class="tab-pane fade" id="sites-tab">
+        <div class="card mb-3">
+            <div class="card-header bg-success text-white">
+                <h5><i class="bi bi-plus-circle"></i> ახალი ობიექტი</h5>
+            </div>
+            <div class="card-body">
+                <form method="POST" action="/sites/create/">
+                    {% csrf_token %}
+                    <div class="row mb-3">
+                        <div class="col-md-6">
+                            <label class="form-label">კომპანია</label>
+                            <select name="company" class="form-select" required>
+                                {% for company in companies %}
+                                <option value="{{ company.id }}">{{ company.name }}</option>
+                                {% endfor %}
+                            </select>
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label">ობიექტის სახელი</label>
+                            <input type="text" name="name" class="form-control" required>
+                        </div>
+                    </div>
+                    <div class="row mb-3">
+                        <div class="col-md-12">
+                            <label class="form-label">მისამართი</label>
+                            <textarea name="address" class="form-control" rows="2" required></textarea>
+                        </div>
+                    </div>
+                    <button type="submit" class="btn btn-success">
+                        <i class="bi bi-check"></i> დამატება
+                    </button>
+                </form>
+            </div>
+        </div>
+        
+        <div class="card">
+            <div class="card-body">
+                <table class="table">
+                    <thead>
+                        <tr>
+                            <th>კომპანია</th>
+                            <th>ობიექტი</th>
+                            <th>მისამართი</th>
+                            <th>მოქმედებები</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for site in sites %}
+                        <tr>
+                            <td>{{ site.company.name }}</td>
+                            <td><strong>{{ site.name }}</strong></td>
+                            <td>{{ site.address }}</td>
+                            <td>
+                                <a href="/sites/{{ site.id }}/delete/" class="btn btn-sm btn-danger"
+                                   onclick="return confirm('დარწმუნებული ხართ?')">
+                                    <i class="bi bi-trash"></i> წაშლა
+                                </a>
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+
+    <!-- Equipment Tab -->
+    <div class="tab-pane fade" id="equipment-tab">
+        <div class="card mb-3">
+            <div class="card-header bg-info text-white">
+                <h5><i class="bi bi-plus-circle"></i> ახალი დანადგარი</h5>
+            </div>
+            <div class="card-body">
+                <form method="POST" action="/equipment/create/">
+                    {% csrf_token %}
+                    <div class="row mb-3">
+                        <div class="col-md-6">
+                            <label class="form-label">ობიექტი</label>
+                            <select name="site" class="form-select" required>
+                                {% for site in sites %}
+                                <option value="{{ site.id }}">{{ site.company.name }} - {{ site.name }}</option>
+                                {% endfor %}
+                            </select>
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label">დანადგარის სახელი</label>
+                            <input type="text" name="name" class="form-control" placeholder="მაგ: Rooftop #1" required>
+                        </div>
+                    </div>
+                    <div class="row mb-3">
+                        <div class="col-md-4">
+                            <label class="form-label">ბრენდი</label>
+                            <input type="text" name="brand" class="form-control" placeholder="მაგ: Clivet">
+                        </div>
+                        <div class="col-md-4">
+                            <label class="form-label">სერიული ნომერი</label>
+                            <input type="text" name="serial_number" class="form-control">
+                        </div>
+                        <div class="col-md-4">
+                            <label class="form-label">სისტემის ტიპი</label>
+                            <select name="system_type" class="form-select" required>
+                                <option value="heating_cooling">გათბობა/გაგრილება</option>
+                                <option value="ventilation">ვენტილაცია</option>
+                            </select>
+                        </div>
+                    </div>
+                    <button type="submit" class="btn btn-info text-white">
+                        <i class="bi bi-check"></i> დამატება
+                    </button>
+                </form>
+            </div>
+        </div>
+        
+        <div class="card">
+            <div class="card-body">
+                <table class="table">
+                    <thead>
+                        <tr>
+                            <th>ობიექტი</th>
+                            <th>დანადგარი</th>
+                            <th>ბრენდი</th>
+                            <th>სერიული №</th>
+                            <th>ტიპი</th>
+                            <th>მოქმედებები</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for equip in equipment_list %}
+                        <tr>
+                            <td>{{ equip.site.name }}</td>
+                            <td><strong>{{ equip.name }}</strong></td>
+                            <td>{{ equip.brand }}</td>
+                            <td>{{ equip.serial_number }}</td>
+                            <td>
+                                <span class="badge bg-secondary">{{ equip.get_system_type_display }}</span>
+                            </td>
+                            <td>
+                                <a href="/equipment/{{ equip.id }}/delete/" class="btn btn-sm btn-danger"
+                                   onclick="return confirm('დარწმუნებული ხართ?')">
+                                    <i class="bi bi-trash"></i> წაშლა
+                                </a>
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+
+    <!-- Schedules Tab -->
+    <div class="tab-pane fade" id="schedules-tab">
+        <div class="card mb-3">
+            <div class="card-header bg-warning text-dark">
+                <h5><i class="bi bi-plus-circle"></i> შემოწმების დამატება</h5>
+            </div>
+            <div class="card-body">
+                <form method="POST" action="/schedules/create/">
+                    {% csrf_token %}
+                    <div class="row mb-3">
+                        <div class="col-md-6">
+                            <label class="form-label">დანადგარი *</label>
+                            <select name="equipment" class="form-select" required>
+                                {% for equip in equipment_list %}
+                                <option value="{{ equip.id }}">
+                                    {{ equip.site.company.name }} - {{ equip.site.name }} - {{ equip.name }}
+                                </option>
+                                {% endfor %}
+                            </select>
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label">სიხშირე *</label>
+                            <select name="frequency" class="form-select" required>
+                                <option value="monthly">თვეში ერთხელ</option>
+                                <option value="quarterly">კვარტლურად</option>
+                                <option value="biannual">წელიწადში 2-ჯერ</option>
+                                <option value="annual">წელიწადში ერთხელ</option>
+                            </select>
+                        </div>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">შემოწმების ტიპი *</label>
+                        <select name="task_name" class="form-select" required>
+                            <option value="მექანიკურ დაზიანებაზე შემოწმება">მექანიკურ დაზიანებაზე შემოწმება</option>
+                            <option value="ელექტრო დაზიანებაზე შემოწმება">ელექტრო დაზიანებაზე შემოწმება</option>
+                            <option value="ვიზუალური დაზიანებაზე შემოწმება">ვიზუალური დაზიანებაზე შემოწმება</option>
+                            <option value="ჰაერის ფილტრების ქიმიური საშუალებით წმენდა">ჰაერის ფილტრების ქიმიური საშუალებით წმენდა</option>
+                        </select>
+                    </div>
+                    <button type="submit" class="btn btn-warning text-dark">
+                        <i class="bi bi-check"></i> დამატება
+                    </button>
+                </form>
+            </div>
+        </div>
+        
+        <div class="card">
+            <div class="card-body">
+                <table class="table table-sm">
+                    <thead>
+                        <tr>
+                            <th>დანადგარი</th>
+                            <th>შემოწმება</th>
+                            <th>სიხშირე</th>
+                            <th>მოქმედებები</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for schedule in schedules %}
+                        <tr>
+                            <td>{{ schedule.equipment.name }}</td>
+                            <td>{{ schedule.task_name }}</td>
+                            <td><span class="badge bg-primary">{{ schedule.get_frequency_display }}</span></td>
+                            <td>
+                                <a href="/schedules/{{ schedule.id }}/delete/" class="btn btn-sm btn-danger"
+                                   onclick="return confirm('დარწმუნებული ხართ?')">
+                                    <i class="bi bi-trash"></i>
+                                </a>
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+
+    <!-- Tasks Tab -->
+    <div class="tab-pane fade" id="tasks-tab">
+        <div class="card">
+            <div class="card-body">
+                <div class="d-flex justify-content-between mb-3">
+                    <h5>ყველა დავალება</h5>
+                    <form method="POST" action="/tasks/generate/" class="d-inline">
+                        {% csrf_token %}
+                        <button type="submit" class="btn btn-success">
+                            <i class="bi bi-arrow-repeat"></i> ახალი ტასკების გენერაცია
+                        </button>
+                    </form>
+                </div>
+                <table class="table">
+                    <thead>
+                        <tr>
+                            <th>დავალება</th>
+                            <th>დანადგარი</th>
+                            <th>ინსპექტორი</th>
+                            <th>სტატუსი</th>
+                            <th>თარიღი</th>
+                            <th>მოქმედებები</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for task in tasks %}
+                        <tr>
+                            <td>{{ task.schedule.task_name }}</td>
+                            <td>{{ task.schedule.equipment.name }}</td>
+                            <td>{{ task.assigned_to.username }}</td>
+                            <td>
+                                <span class="badge bg-{% if task.status == 'completed' %}success{% elif task.status == 'approved' %}info{% else %}secondary{% endif %}">
+                                    {{ task.get_status_display }}
+                                </span>
+                            </td>
+                            <td>{{ task.scheduled_date|date:"d M Y" }}</td>
+                            <td>
+                                <a href="/tasks/{{ task.id }}/" class="btn btn-sm btn-primary">
+                                    <i class="bi bi-eye"></i> ნახვა
+                                </a>
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+
+    <!-- Inspectors Tab -->
+    <div class="tab-pane fade" id="inspectors-tab">
+        <div class="card mb-3">
+            <div class="card-header bg-dark text-white">
+                <h5><i class="bi bi-person-plus"></i> ახალი ინსპექტორი</h5>
+            </div>
+            <div class="card-body">
+                <form method="POST" action="/inspectors/create/">
+                    {% csrf_token %}
+                    <div class="row mb-3">
+                        <div class="col-md-4">
+                            <label class="form-label">მომხმარებელი</label>
+                            <input type="text" name="username" class="form-control" required>
+                        </div>
+                        <div class="col-md-4">
+                            <label class="form-label">პაროლი</label>
+                            <input type="password" name="password" class="form-control" required>
+                        </div>
+                        <div class="col-md-4">
+                            <label class="form-label">ტელეფონი</label>
+                            <input type="text" name="phone" class="form-control">
+                        </div>
+                    </div>
+                    <div class="row mb-3">
+                        <div class="col-md-6">
+                            <label class="form-label">სახელი</label>
+                            <input type="text" name="first_name" class="form-control">
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label">გვარი</label>
+                            <input type="text" name="last_name" class="form-control">
+                        </div>
+                    </div>
+                    <button type="submit" class="btn btn-dark">
+                        <i class="bi bi-check"></i> დამატება
+                    </button>
+                </form>
+            </div>
+        </div>
+        
+        <div class="card">
+            <div class="card-body">
+                <table class="table">
+                    <thead>
+                        <tr>
+                            <th>სახელი</th>
+                            <th>მომხმარებელი</th>
+                            <th>ტელეფონი</th>
+                            <th>ტასკები</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for inspector in inspectors %}
+                        <tr>
+                            <td>{{ inspector.first_name }} {{ inspector.last_name }}</td>
+                            <td>{{ inspector.username }}</td>
+                            <td>{{ inspector.phone }}</td>
+                            <td>
+                                <span class="badge bg-info">{{ inspector.assigned_tasks.count }} ტასკი</span>
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

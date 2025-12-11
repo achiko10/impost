@@ -1,0 +1,73 @@
+{% extends 'manager/base.html' %}
+
+{% block title %}კომპანიები{% endblock %}
+
+{% block content %}
+<div class="d-flex justify-content-between mb-4">
+    <h2><i class="bi bi-building"></i> კომპანიები</h2>
+    <button class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#addModal">
+        <i class="bi bi-plus-circle"></i> დამატება
+    </button>
+</div>
+
+<!-- Table -->
+<div class="card">
+    <div class="card-body">
+        <table class="table">
+            <thead>
+                <tr>
+                    <th>ID</th>
+                    <th>სახელი</th>
+                    <th>შექმნის თარიღი</th>
+                    <th>მოქმედებები</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for company in companies %}
+                <tr>
+                    <td>{{ company.id }}</td>
+                    <td><strong>{{ company.name }}</strong></td>
+                    <td>{{ company.created_at|date:"d M Y" }}</td>
+                    <td>
+                        <a href="/companies/{{ company.id }}/delete/" 
+                           class="btn btn-sm btn-danger"
+                           onclick="return confirm('წაშლა დარწმუნებული ხარ?')">
+                            <i class="bi bi-trash"></i>
+                        </a>
+                    </td>
+                </tr>
+                {% empty %}
+                <tr>
+                    <td colspan="4" class="text-center text-muted">კომპანიები არ არის</td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div>
+
+<!-- Add Modal -->
+<div class="modal fade" id="addModal" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">ახალი კომპანია</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <form method="POST" action="/companies/create/">
+                {% csrf_token %}
+                <div class="modal-body">
+                    <div class="mb-3">
+                        <label class="form-label">სახელი</label>
+                        <input type="text" name="name" class="form-control" required>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">გაუქმება</button>
+                    <button type="submit" class="btn btn-primary">შენახვა</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+{% endblock %}

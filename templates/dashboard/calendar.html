@@ -1,0 +1,313 @@
+{% extends 'manager/base.html' %}
+
+{% block title %}კალენდარი{% endblock %}
+
+{% block extra_css %}
+<link href='https://cdn.jsdelivr.net/npm/fullcalendar@6.1.10/index.global.min.css' rel='stylesheet' />
+<style>
+    #calendar {
+        max-width: 1400px;
+        margin: 0 auto;
+        background: white;
+        padding: 20px;
+        border-radius: 10px;
+        box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+    }
+    .fc-event { cursor: pointer; padding: 2px 5px; border-radius: 4px; font-size: 12px; }
+    .fc-event:hover { opacity: 0.85; transform: scale(1.02); }
+    .fc-daygrid-day:hover { background: #f8f9fa; }
+    .fc-day-today { background: #e3f2fd !important; }
+    .legend { display: flex; gap: 15px; margin-bottom: 20px; justify-content: center; flex-wrap: wrap; padding: 15px; background: #f8f9fa; border-radius: 8px; }
+    .legend-item { display: flex; align-items: center; gap: 6px; font-size: 13px; }
+    .legend-color { width: 18px; height: 18px; border-radius: 4px; }
+    .stats-bar { display: flex; gap: 15px; margin-bottom: 20px; flex-wrap: wrap; }
+    .stat-card { flex: 1; min-width: 120px; padding: 15px; border-radius: 8px; text-align: center; color: white; }
+    .stat-card h4 { margin: 0; font-size: 24px; }
+    .stat-card small { opacity: 0.9; }
+    .filter-bar { display: flex; gap: 10px; margin-bottom: 15px; flex-wrap: wrap; align-items: center; }
+    .filter-bar select { min-width: 150px; }
+    .task-info-row { display: flex; padding: 8px 0; border-bottom: 1px solid #eee; }
+    .task-info-label { font-weight: 600; width: 120px; color: #666; }
+    .task-info-value { flex: 1; }
+    .quick-actions { display: flex; gap: 10px; margin-top: 15px; padding-top: 15px; border-top: 1px solid #eee; }
+    .quick-actions button { flex: 1; }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+    <div class="row mb-3">
+        <div class="col-md-6">
+            <h2><i class="bi bi-calendar3 me-2"></i>ინტერაქტიული კალენდარი</h2>
+            <p class="text-muted">დააჭირე დღეს ახალი დავალების შესაქმნელად ან არსებულზე რედაქტირებისთვის</p>
+        </div>
+        <div class="col-md-6 text-end">
+            <button class="btn btn-success btn-lg" data-bs-toggle="modal" data-bs-target="#addTaskModal">
+                <i class="bi bi-plus-circle me-1"></i> ახალი დავალება
+            </button>
+        </div>
+    </div>
+
+    <div class="stats-bar">
+        <div class="stat-card" style="background: linear-gradient(135deg, #6c757d, #5a6268);"><h4 id="stat-pending">0</h4><small>მოლოდინში</small></div>
+        <div class="stat-card" style="background: linear-gradient(135deg, #ffc107, #e0a800);"><h4 id="stat-in_progress">0</h4><small>მიმდინარე</small></div>
+        <div class="stat-card" style="background: linear-gradient(135deg, #28a745, #1e7e34);"><h4 id="stat-completed">0</h4><small>დასრულებული</small></div>
+        <div class="stat-card" style="background: linear-gradient(135deg, #17a2b8, #117a8b);"><h4 id="stat-approved">0</h4><small>დამტკიცებული</small></div>
+        <div class="stat-card" style="background: linear-gradient(135deg, #dc3545, #bd2130);"><h4 id="stat-rejected">0</h4><small>უარყოფილი</small></div>
+    </div>
+
+    <div class="filter-bar">
+        <label><strong>ფილტრი:</strong></label>
+        <select id="filterInspector" class="form-select form-select-sm">
+            <option value="">ყველა ინსპექტორი</option>
+            {% for inspector in inspectors %}<option value="{{ inspector.id }}">{{ inspector.get_full_name|default:inspector.username }}</option>{% endfor %}
+        </select>
+        <select id="filterStatus" class="form-select form-select-sm">
+            <option value="">ყველა სტატუსი</option>
+            <option value="pending">მოლოდინში</option>
+            <option value="in_progress">მიმდინარე</option>
+            <option value="completed">დასრულებული</option>
+            <option value="approved">დამტკიცებული</option>
+            <option value="rejected">უარყოფილი</option>
+        </select>
+        <button class="btn btn-outline-secondary btn-sm" onclick="clearFilters()"><i class="bi bi-x-circle"></i> გასუფთავება</button>
+        <button class="btn btn-outline-primary btn-sm" onclick="calendar.refetchEvents()"><i class="bi bi-arrow-clockwise"></i> განახლება</button>
+    </div>
+
+    <div class="legend">
+        <div class="legend-item"><div class="legend-color" style="background: #6c757d;"></div><span>მოლოდინში</span></div>
+        <div class="legend-item"><div class="legend-color" style="background: #ffc107;"></div><span>მიმდინარე</span></div>
+        <div class="legend-item"><div class="legend-color" style="background: #28a745;"></div><span>დასრულებული</span></div>
+        <div class="legend-item"><div class="legend-color" style="background: #17a2b8;"></div><span>დამტკიცებული</span></div>
+        <div class="legend-item"><div class="legend-color" style="background: #dc3545;"></div><span>უარყოფილი</span></div>
+        <div class="legend-item ms-3"><i class="bi bi-arrows-move text-primary"></i><span>გადაათრიე თარიღის შესაცვლელად</span></div>
+    </div>
+
+    <div id='calendar'></div>
+</div>
+
+<!-- Edit Modal -->
+<div class="modal fade" id="taskModal" tabindex="-1">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+            <div class="modal-header bg-primary text-white">
+                <h5 class="modal-title"><i class="bi bi-pencil-square me-2"></i>დავალების რედაქტირება</h5>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+            </div>
+            <form id="editTaskForm">
+                {% csrf_token %}
+                <input type="hidden" id="task_id">
+                <div class="modal-body">
+                    <div class="mb-4">
+                        <div class="task-info-row"><span class="task-info-label"><i class="bi bi-building me-1"></i>ობიექტი:</span><span class="task-info-value" id="task_site">-</span></div>
+                        <div class="task-info-row"><span class="task-info-label"><i class="bi bi-gear me-1"></i>დანადგარი:</span><span class="task-info-value" id="task_equipment">-</span></div>
+                        <div class="task-info-row"><span class="task-info-label"><i class="bi bi-clipboard me-1"></i>შემოწმება:</span><span class="task-info-value" id="task_name">-</span></div>
+                    </div>
+                    <div class="row">
+                        <div class="col-md-6 mb-3">
+                            <label class="form-label"><i class="bi bi-calendar-date me-1"></i>თარიღი *</label>
+                            <input type="datetime-local" id="task_date" class="form-control form-control-lg" required>
+                        </div>
+                        <div class="col-md-6 mb-3">
+                            <label class="form-label"><i class="bi bi-person me-1"></i>ინსპექტორი *</label>
+                            <select id="task_inspector" class="form-select form-select-lg" required>
+                                <option value="">აირჩიე</option>
+                                {% for inspector in inspectors %}<option value="{{ inspector.id }}">{{ inspector.get_full_name|default:inspector.username }}</option>{% endfor %}
+                            </select>
+                        </div>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label"><i class="bi bi-flag me-1"></i>სტატუსი *</label>
+                        <select id="task_status" class="form-select form-select-lg" required>
+                            <option value="pending">🔘 მოლოდინში</option>
+                            <option value="in_progress">🟡 მიმდინარე</option>
+                            <option value="completed">🟢 დასრულებული</option>
+                            <option value="approved">🔵 დამტკიცებული</option>
+                            <option value="rejected">🔴 უარყოფილი</option>
+                        </select>
+                    </div>
+                    <div class="quick-actions">
+                        <button type="button" class="btn btn-outline-warning" onclick="setStatus('in_progress')"><i class="bi bi-play-fill"></i> დაწყება</button>
+                        <button type="button" class="btn btn-outline-success" onclick="setStatus('completed')"><i class="bi bi-check-lg"></i> დასრულება</button>
+                        <button type="button" class="btn btn-outline-info" onclick="setStatus('approved')"><i class="bi bi-hand-thumbs-up"></i> დამტკიცება</button>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-danger" onclick="deleteTask()"><i class="bi bi-trash"></i> წაშლა</button>
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">გაუქმება</button>
+                    <button type="submit" class="btn btn-primary btn-lg"><i class="bi bi-check-circle"></i> შენახვა</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<!-- Add Modal -->
+<div class="modal fade" id="addTaskModal" tabindex="-1">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+            <div class="modal-header bg-success text-white">
+                <h5 class="modal-title"><i class="bi bi-plus-circle me-2"></i>ახალი დავალება</h5>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+            </div>
+            <form id="addTaskForm">
+                {% csrf_token %}
+                <div class="modal-body">
+                    <div class="mb-3">
+                        <label class="form-label"><i class="bi bi-gear me-1"></i>დანადგარი და შემოწმება *</label>
+                        <select name="schedule" id="add_schedule" class="form-select form-select-lg" required>
+                            <option value="">აირჩიე...</option>
+                            {% for schedule in schedules %}<option value="{{ schedule.id }}">{{ schedule.equipment.site.name }} → {{ schedule.equipment.name }} → {{ schedule.task_name }}</option>{% endfor %}
+                        </select>
+                    </div>
+                    <div class="row">
+                        <div class="col-md-6 mb-3">
+                            <label class="form-label"><i class="bi bi-calendar-date me-1"></i>თარიღი *</label>
+                            <input type="datetime-local" name="date" id="add_date" class="form-control form-control-lg" required>
+                        </div>
+                        <div class="col-md-6 mb-3">
+                            <label class="form-label"><i class="bi bi-person me-1"></i>ინსპექტორი *</label>
+                            <select name="inspector" id="add_inspector" class="form-select form-select-lg" required>
+                                <option value="">აირჩიე</option>
+                                {% for inspector in inspectors %}<option value="{{ inspector.id }}">{{ inspector.get_full_name|default:inspector.username }}</option>{% endfor %}
+                            </select>
+                        </div>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">გაუქმება</button>
+                    <button type="submit" class="btn btn-success btn-lg"><i class="bi bi-plus-circle"></i> შექმნა</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<div class="position-fixed bottom-0 end-0 p-3" style="z-index: 11">
+    <div id="liveToast" class="toast" role="alert">
+        <div class="toast-header"><strong class="me-auto" id="toastTitle">შეტყობინება</strong><button type="button" class="btn-close" data-bs-dismiss="toast"></button></div>
+        <div class="toast-body" id="toastBody"></div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script src='https://cdn.jsdelivr.net/npm/fullcalendar@6.1.10/index.global.min.js'></script>
+<script>
+let calendar, allEvents = [];
+
+document.addEventListener('DOMContentLoaded', function() {
+    calendar = new FullCalendar.Calendar(document.getElementById('calendar'), {
+        initialView: 'dayGridMonth',
+        headerToolbar: { left: 'prev,next today', center: 'title', right: 'dayGridMonth,timeGridWeek,timeGridDay,listMonth' },
+        views: { listMonth: { buttonText: 'სია' } },
+        editable: true, selectable: true, selectMirror: true, dayMaxEvents: 3, navLinks: true, locale: 'ka',
+        buttonText: { today: 'დღეს', month: 'თვე', week: 'კვირა', day: 'დღე' },
+        height: 'auto',
+        events: function(info, successCallback, failureCallback) {
+            fetch('/calendar-events/').then(r => r.json()).then(events => {
+                allEvents = events;
+                updateStats(events);
+                successCallback(filterEvents(events));
+            }).catch(failureCallback);
+        },
+        eventClick: function(info) { info.jsEvent.preventDefault(); loadTaskDetails(info.event.id); },
+        eventDrop: function(info) { updateTaskDate(info.event.id, info.event.start); },
+        dateClick: function(info) { document.getElementById('add_date').value = info.dateStr + 'T09:00'; new bootstrap.Modal(document.getElementById('addTaskModal')).show(); },
+        eventDidMount: function(info) { info.el.title = info.event.title + ' (დააჭირე რედაქტირებისთვის)'; }
+    });
+    calendar.render();
+    document.getElementById('filterInspector').addEventListener('change', () => calendar.refetchEvents());
+    document.getElementById('filterStatus').addEventListener('change', () => calendar.refetchEvents());
+});
+
+function filterEvents(events) {
+    const insp = document.getElementById('filterInspector').value;
+    const stat = document.getElementById('filterStatus').value;
+    return events.filter(e => (!insp || e.inspectorId == insp) && (!stat || e.status == stat));
+}
+
+function updateStats(events) {
+    const s = { pending: 0, in_progress: 0, completed: 0, approved: 0, rejected: 0 };
+    events.forEach(e => { if (s.hasOwnProperty(e.status)) s[e.status]++; });
+    Object.keys(s).forEach(k => { const el = document.getElementById('stat-' + k); if (el) el.textContent = s[k]; });
+}
+
+function clearFilters() {
+    document.getElementById('filterInspector').value = '';
+    document.getElementById('filterStatus').value = '';
+    calendar.refetchEvents();
+}
+
+function loadTaskDetails(taskId) {
+    fetch('/task-detail/' + taskId + '/').then(r => r.json()).then(data => {
+        document.getElementById('task_id').value = taskId;
+        document.getElementById('task_site').textContent = data.equipment_name ? data.equipment_name.split(' - ')[0] : '-';
+        document.getElementById('task_equipment').textContent = data.equipment_name || '-';
+        document.getElementById('task_name').textContent = data.schedule_name || '-';
+        if (data.scheduled_date) document.getElementById('task_date').value = new Date(data.scheduled_date).toISOString().slice(0, 16);
+        document.getElementById('task_inspector').value = data.assigned_to_id || '';
+        document.getElementById('task_status').value = data.status || 'pending';
+        new bootstrap.Modal(document.getElementById('taskModal')).show();
+    }).catch(function(err) { showToast('შეცდომა', 'დავალება ვერ მოიძებნა', 'danger'); });
+}
+
+function setStatus(status) { document.getElementById('task_status').value = status; }
+
+document.getElementById('editTaskForm').addEventListener('submit', function(e) {
+    e.preventDefault();
+    var taskId = document.getElementById('task_id').value;
+    fetch('/task-update/' + taskId + '/', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', 'X-CSRFToken': document.querySelector('[name=csrfmiddlewaretoken]').value },
+        body: JSON.stringify({ scheduled_date: document.getElementById('task_date').value, assigned_to: document.getElementById('task_inspector').value, status: document.getElementById('task_status').value })
+    }).then(function(r) { return r.json(); }).then(function(data) {
+        if (data.success) { calendar.refetchEvents(); bootstrap.Modal.getInstance(document.getElementById('taskModal')).hide(); showToast('წარმატება', 'დავალება განახლდა!', 'success'); }
+        else showToast('შეცდომა', JSON.stringify(data.error), 'danger');
+    }).catch(function() { showToast('შეცდომა', 'ვერ მოხერხდა განახლება', 'danger'); });
+});
+
+function updateTaskDate(taskId, newDate) {
+    fetch('/task-update/' + taskId + '/', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', 'X-CSRFToken': document.querySelector('[name=csrfmiddlewaretoken]').value },
+        body: JSON.stringify({ scheduled_date: newDate.toISOString() })
+    }).then(function(r) { return r.json(); }).then(function(data) { if (data.success) showToast('წარმატება', 'თარიღი შეიცვალა!', 'success'); }).catch(function() { calendar.refetchEvents(); });
+}
+
+function deleteTask() {
+    if (!confirm('დარწმუნებული ხარ რომ გინდა წაშლა?')) return;
+    fetch('/task-delete/' + document.getElementById('task_id').value + '/', {
+        method: 'POST', headers: { 'X-CSRFToken': document.querySelector('[name=csrfmiddlewaretoken]').value }
+    }).then(function() { calendar.refetchEvents(); bootstrap.Modal.getInstance(document.getElementById('taskModal')).hide(); showToast('წარმატება', 'წაიშალა!', 'warning'); });
+}
+
+document.getElementById('addTaskForm').addEventListener('submit', function(e) {
+    e.preventDefault();
+    var form = this;
+    fetch('/task-create/', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', 'X-CSRFToken': document.querySelector('[name=csrfmiddlewaretoken]').value },
+        body: JSON.stringify({ schedule: document.getElementById('add_schedule').value, date: document.getElementById('add_date').value, inspector: document.getElementById('add_inspector').value })
+    }).then(function(r) { return r.json(); }).then(function(data) {
+        if (data.success) { calendar.refetchEvents(); bootstrap.Modal.getInstance(document.getElementById('addTaskModal')).hide(); form.reset(); showToast('წარმატება', 'შეიქმნა!', 'success'); }
+        else showToast('შეცდომა', JSON.stringify(data.error), 'danger');
+    }).catch(function() { showToast('შეცდომა', 'ვერ შეიქმნა', 'danger'); });
+});
+
+function showToast(title, message, type) {
+    var toast = document.getElementById('liveToast');
+    toast.className = 'toast bg-' + type + ' text-white';
+    document.getElementById('toastTitle').textContent = title;
+    document.getElementById('toastBody').textContent = message;
+    new bootstrap.Toast(toast).show();
+}
+
+document.getElementById('addTaskModal').addEventListener('show.bs.modal', function() {
+    if (!document.getElementById('add_date').value) {
+        var now = new Date(); now.setHours(9, 0, 0, 0);
+        document.getElementById('add_date').value = now.toISOString().slice(0, 16);
+    }
+});
+</script>
+{% endblock %}

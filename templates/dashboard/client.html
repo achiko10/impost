@@ -1,0 +1,249 @@
+{% extends "base/base.html" %}
+
+{% block title %}კლიენტის პანელი{% if company %} - {{ company.name }}{% endif %}{% endblock %}
+
+{% block content %}
+<div class="container-fluid py-4">
+    <!-- შეცდომის შეტყობინება -->
+    {% if error %}
+    <div class="alert alert-warning" role="alert">
+        <i class="fas fa-exclamation-triangle me-2"></i>{{ error }}
+    </div>
+    {% endif %}
+
+    <!-- Django Messages -->
+    {% if messages %}
+    {% for message in messages %}
+    <div class="alert alert-{{ message.tags }} alert-dismissible fade show" role="alert">
+        {{ message }}
+        <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+    </div>
+    {% endfor %}
+    {% endif %}
+
+    <div class="row mb-4">
+        <div class="col-12">
+            <h1 class="h3">
+                <i class="fas fa-building me-2"></i>
+                კეთილი იყოს თქვენი მობრძანება, {{ request.user.first_name|default:request.user.username }}!
+            </h1>
+            {% if company %}
+            <p class="text-muted">კომპანია: <strong>{{ company.name }}</strong></p>
+            {% endif %}
+        </div>
+    </div>
+
+    {% if company %}
+    <!-- სტატისტიკა -->
+    <div class="row mb-4">
+        <div class="col-md-3">
+            <div class="card bg-primary text-white">
+                <div class="card-body text-center">
+                    <i class="fas fa-cogs fa-2x mb-2"></i>
+                    <h5 class="card-title">მოწყობილობები</h5>
+                    <h2>{{ equipment.count }}</h2>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="card bg-warning text-dark">
+                <div class="card-body text-center">
+                    <i class="fas fa-clock fa-2x mb-2"></i>
+                    <h5 class="card-title">მოლოდინში</h5>
+                    <h2 id="pending-count">0</h2>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="card bg-info text-white">
+                <div class="card-body text-center">
+                    <i class="fas fa-check-circle fa-2x mb-2"></i>
+                    <h5 class="card-title">დასადასტურებელი</h5>
+                    <h2 id="pending-approval-count">0</h2>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="card bg-success text-white">
+                <div class="card-body text-center">
+                    <i class="fas fa-thumbs-up fa-2x mb-2"></i>
+                    <h5 class="card-title">დადასტურებული</h5>
+                    <h2 id="approved-count">0</h2>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- დასადასტურებელი დავალებები -->
+    <div class="row mb-4">
+        <div class="col-12">
+            <div class="card border-info">
+                <div class="card-header bg-info text-white">
+                    <h5 class="mb-0"><i class="fas fa-clipboard-check me-2"></i>დასადასტურებელი დავალებები</h5>
+                </div>
+                <div class="card-body">
+                    <div class="table-responsive">
+                        <table class="table table-hover" id="approval-table">
+                            <thead>
+                                <tr>
+                                    <th>მოწყობილობა</th>
+                                    <th>დავალება</th>
+                                    <th>თარიღი</th>
+                                    <th>ინსპექტორი</th>
+                                    <th>მოქმედება</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for task in tasks %}
+                                {% if task.status == 'completed' %}
+                                <tr data-status="completed">
+                                    <td>{{ task.schedule.equipment.name }}</td>
+                                    <td>{{ task.schedule.task_name }}</td>
+                                    <td>{{ task.scheduled_date|date:"d.m.Y" }}</td>
+                                    <td>{{ task.assigned_to.get_full_name|default:task.assigned_to.username|default:"—" }}</td>
+                                    <td>
+                                        <form method="post" action="{% url 'client_approve_task' task.id %}" class="d-inline">
+                                            {% csrf_token %}
+                                            <input type="hidden" name="action" value="approve">
+                                            <button type="submit" class="btn btn-sm btn-success" title="დადასტურება">
+                                                <i class="fas fa-check"></i> დადასტურება
+                                            </button>
+                                        </form>
+                                        <form method="post" action="{% url 'client_approve_task' task.id %}" class="d-inline">
+                                            {% csrf_token %}
+                                            <input type="hidden" name="action" value="reject">
+                                            <button type="submit" class="btn btn-sm btn-danger" title="უარყოფა">
+                                                <i class="fas fa-times"></i> უარყოფა
+                                            </button>
+                                        </form>
+                                    </td>
+                                </tr>
+                                {% endif %}
+                                {% empty %}
+                                <tr><td colspan="5" class="text-muted text-center">დასადასტურებელი დავალებები არ არის.</td></tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- ყველა დავალება -->
+    <div class="row">
+        <div class="col-12">
+            <div class="card">
+                <div class="card-header">
+                    <h5 class="mb-0"><i class="fas fa-tasks me-2"></i>ყველა დავალება</h5>
+                </div>
+                <div class="card-body">
+                    {% if tasks %}
+                    <div class="table-responsive">
+                        <table class="table table-hover" id="all-tasks-table">
+                            <thead>
+                                <tr>
+                                    <th>ობიექტი</th>
+                                    <th>მოწყობილობა</th>
+                                    <th>დავალება</th>
+                                    <th>თარიღი</th>
+                                    <th>სტატუსი</th>
+                                    <th>ინსპექტორი</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for task in tasks %}
+                                <tr data-status="{{ task.status }}">
+                                    <td>{{ task.schedule.equipment.site.name }}</td>
+                                    <td>{{ task.schedule.equipment.name }}</td>
+                                    <td>{{ task.schedule.task_name }}</td>
+                                    <td>{{ task.scheduled_date|date:"d.m.Y H:i" }}</td>
+                                    <td>
+                                        {% if task.status == 'completed' %}
+                                        <span class="badge bg-success">დასრულებული</span>
+                                        {% elif task.status == 'approved' %}
+                                        <span class="badge bg-primary">დადასტურებული</span>
+                                        {% elif task.status == 'rejected' %}
+                                        <span class="badge bg-danger">უარყოფილი</span>
+                                        {% elif task.status == 'in_progress' %}
+                                        <span class="badge bg-warning text-dark">მიმდინარე</span>
+                                        {% else %}
+                                        <span class="badge bg-secondary">მოლოდინში</span>
+                                        {% endif %}
+                                    </td>
+                                    <td>{{ task.assigned_to.get_full_name|default:task.assigned_to.username|default:"—" }}</td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                    {% else %}
+                    <p class="text-muted">ჯერ არ არის დავალებები.</p>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- მოწყობილობების სია -->
+    <div class="row mt-4">
+        <div class="col-12">
+            <div class="card">
+                <div class="card-header">
+                    <h5 class="mb-0"><i class="fas fa-cogs me-2"></i>თქვენი მოწყობილობები</h5>
+                </div>
+                <div class="card-body">
+                    {% if equipment %}
+                    <div class="table-responsive">
+                        <table class="table">
+                            <thead>
+                                <tr>
+                                    <th>სახელი</th>
+                                    <th>ბრენდი</th>
+                                    <th>სერიული ნომერი</th>
+                                    <th>ტიპი</th>
+                                    <th>ობიექტი</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for eq in equipment %}
+                                <tr>
+                                    <td>{{ eq.name }}</td>
+                                    <td>{{ eq.brand|default:"—" }}</td>
+                                    <td>{{ eq.serial_number|default:"—" }}</td>
+                                    <td>{{ eq.get_system_type_display }}</td>
+                                    <td>{{ eq.site.name }}</td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                    {% else %}
+                    <p class="text-muted">მოწყობილობები არ არის დარეგისტრირებული.</p>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+    </div>
+    {% endif %}
+</div>
+
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    // Count tasks by status
+    const rows = document.querySelectorAll('#all-tasks-table tbody tr');
+    let pending = 0, pendingApproval = 0, approved = 0;
+    
+    rows.forEach(row => {
+        const status = row.getAttribute('data-status');
+        if (status === 'pending') pending++;
+        if (status === 'completed') pendingApproval++;
+        if (status === 'approved') approved++;
+    });
+    
+    document.getElementById('pending-count').textContent = pending;
+    document.getElementById('pending-approval-count').textContent = pendingApproval;
+    document.getElementById('approved-count').textContent = approved;
+});
+</script>
+{% endblock %}

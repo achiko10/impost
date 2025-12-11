@@ -1,0 +1,4 @@
+[flake8]
+exclude = .venv,venv,__pycache__,.git,.github,migrations,staticfiles,media
+max-line-length = 120
+ignore = E203,W503

@@ -1,0 +1,451 @@
+{% extends 'manager/base.html' %}
+
+{% block title %}დავალებები{% endblock %}
+
+{% block extra_css %}
+<style>
+    .task-stats {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
+        gap: 15px;
+        margin-bottom: 20px;
+    }
+    .stat-card {
+        background: white;
+        padding: 20px;
+        border-radius: 12px;
+        text-align: center;
+        box-shadow: 0 2px 8px rgba(0,0,0,0.06);
+        transition: transform 0.2s;
+        cursor: pointer;
+    }
+    .stat-card:hover { transform: translateY(-3px); }
+    .stat-card.active { border: 2px solid #0d6efd; }
+    .stat-card h3 { font-size: 32px; margin: 0; font-weight: 700; }
+    .stat-card small { color: #6c757d; font-size: 13px; }
+    
+    .task-card {
+        background: white;
+        border-radius: 12px;
+        padding: 15px 20px;
+        margin-bottom: 12px;
+        box-shadow: 0 2px 6px rgba(0,0,0,0.05);
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        transition: all 0.2s;
+        border-left: 4px solid #6c757d;
+    }
+    .task-card:hover { box-shadow: 0 4px 15px rgba(0,0,0,0.1); }
+    .task-card.status-pending { border-left-color: #6c757d; }
+    .task-card.status-in_progress { border-left-color: #ffc107; }
+    .task-card.status-completed { border-left-color: #28a745; }
+    .task-card.status-approved { border-left-color: #17a2b8; }
+    .task-card.status-rejected { border-left-color: #dc3545; }
+    
+    .task-info { flex: 1; }
+    .task-info h6 { margin: 0 0 5px 0; font-weight: 600; }
+    .task-meta { display: flex; gap: 15px; color: #6c757d; font-size: 13px; }
+    .task-meta i { margin-right: 4px; }
+    
+    .task-actions { display: flex; gap: 8px; align-items: center; }
+    
+    .status-badge {
+        padding: 5px 12px;
+        border-radius: 20px;
+        font-size: 12px;
+        font-weight: 500;
+    }
+    .status-pending { background: #e9ecef; color: #495057; }
+    .status-in_progress { background: #fff3cd; color: #856404; }
+    .status-completed { background: #d4edda; color: #155724; }
+    .status-approved { background: #cce5ff; color: #004085; }
+    .status-rejected { background: #f8d7da; color: #721c24; }
+    
+    .filters-bar {
+        background: white;
+        padding: 15px 20px;
+        border-radius: 12px;
+        margin-bottom: 20px;
+        box-shadow: 0 2px 6px rgba(0,0,0,0.05);
+    }
+    .filter-group { display: flex; gap: 10px; flex-wrap: wrap; align-items: center; }
+    
+    .quick-status-btn {
+        padding: 4px 10px;
+        border-radius: 6px;
+        border: 1px solid #dee2e6;
+        background: white;
+        cursor: pointer;
+        font-size: 12px;
+        transition: all 0.2s;
+    }
+    .quick-status-btn:hover { background: #f8f9fa; }
+    
+    .empty-state {
+        text-align: center;
+        padding: 60px 20px;
+        color: #6c757d;
+    }
+    .empty-state i { font-size: 48px; margin-bottom: 15px; }
+    
+    .bulk-actions {
+        background: #0d6efd;
+        color: white;
+        padding: 10px 20px;
+        border-radius: 8px;
+        margin-bottom: 15px;
+        display: none;
+        align-items: center;
+        gap: 15px;
+    }
+    .bulk-actions.show { display: flex; }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="d-flex justify-content-between align-items-center mb-4">
+    <div>
+        <h2><i class="bi bi-list-task me-2"></i>დავალებები</h2>
+        <p class="text-muted mb-0">სულ: {{ tasks.count }} დავალება</p>
+    </div>
+    <div class="d-flex gap-2">
+        <a href="{% url 'calendar' %}" class="btn btn-outline-primary">
+            <i class="bi bi-calendar3"></i> კალენდარი
+        </a>
+        <form method="POST" action="{% url 'generate_tasks' %}" class="d-inline">
+            {% csrf_token %}
+            <button type="submit" class="btn btn-success">
+                <i class="bi bi-magic"></i> ტასკების გენერაცია
+            </button>
+        </form>
+    </div>
+</div>
+
+<!-- Statistics -->
+<div class="task-stats">
+    <div class="stat-card {% if not request.GET.status %}active{% endif %}" onclick="filterByStatus('')">
+        <h3>{{ stats.total }}</h3>
+        <small>სულ</small>
+    </div>
+    <div class="stat-card {% if request.GET.status == 'pending' %}active{% endif %}" onclick="filterByStatus('pending')" style="border-bottom: 3px solid #6c757d;">
+        <h3 style="color: #6c757d;">{{ stats.pending }}</h3>
+        <small>მოლოდინში</small>
+    </div>
+    <div class="stat-card {% if request.GET.status == 'in_progress' %}active{% endif %}" onclick="filterByStatus('in_progress')" style="border-bottom: 3px solid #ffc107;">
+        <h3 style="color: #ffc107;">{{ stats.in_progress }}</h3>
+        <small>მიმდინარე</small>
+    </div>
+    <div class="stat-card {% if request.GET.status == 'completed' %}active{% endif %}" onclick="filterByStatus('completed')" style="border-bottom: 3px solid #28a745;">
+        <h3 style="color: #28a745;">{{ stats.completed }}</h3>
+        <small>დასრულებული</small>
+    </div>
+    <div class="stat-card {% if request.GET.status == 'approved' %}active{% endif %}" onclick="filterByStatus('approved')" style="border-bottom: 3px solid #17a2b8;">
+        <h3 style="color: #17a2b8;">{{ stats.approved }}</h3>
+        <small>დამტკიცებული</small>
+    </div>
+</div>
+
+<!-- Filters -->
+<div class="filters-bar">
+    <form method="GET" class="filter-group" id="filterForm">
+        <div class="input-group" style="width: 250px;">
+            <span class="input-group-text"><i class="bi bi-search"></i></span>
+            <input type="text" name="search" class="form-control" placeholder="ძებნა..." value="{{ request.GET.search }}">
+        </div>
+        
+        <select name="status" class="form-select" style="width: 160px;" onchange="this.form.submit()">
+            <option value="">ყველა სტატუსი</option>
+            <option value="pending" {% if request.GET.status == 'pending' %}selected{% endif %}>მოლოდინში</option>
+            <option value="in_progress" {% if request.GET.status == 'in_progress' %}selected{% endif %}>მიმდინარე</option>
+            <option value="completed" {% if request.GET.status == 'completed' %}selected{% endif %}>დასრულებული</option>
+            <option value="approved" {% if request.GET.status == 'approved' %}selected{% endif %}>დამტკიცებული</option>
+            <option value="rejected" {% if request.GET.status == 'rejected' %}selected{% endif %}>უარყოფილი</option>
+        </select>
+        
+        <select name="inspector" class="form-select" style="width: 180px;" onchange="this.form.submit()">
+            <option value="">ყველა ინსპექტორი</option>
+            {% for inspector in inspectors %}
+            <option value="{{ inspector.id }}" {% if request.GET.inspector == inspector.id|stringformat:"i" %}selected{% endif %}>
+                {{ inspector.get_full_name|default:inspector.username }}
+            </option>
+            {% endfor %}
+        </select>
+        
+        <input type="date" name="date_from" class="form-control" style="width: 150px;" value="{{ request.GET.date_from }}" placeholder="თარიღიდან">
+        <input type="date" name="date_to" class="form-control" style="width: 150px;" value="{{ request.GET.date_to }}" placeholder="თარიღამდე">
+        
+        <button type="submit" class="btn btn-primary">
+            <i class="bi bi-funnel"></i> ფილტრი
+        </button>
+        
+        {% if request.GET %}
+        <a href="{% url 'tasks_list' %}" class="btn btn-outline-secondary">
+            <i class="bi bi-x-circle"></i> გასუფთავება
+        </a>
+        {% endif %}
+    </form>
+</div>
+
+<!-- Bulk Actions Bar -->
+<div class="bulk-actions" id="bulkActions">
+    <span><strong id="selectedCount">0</strong> არჩეული</span>
+    <button class="btn btn-sm btn-light" onclick="bulkUpdateStatus('in_progress')">
+        <i class="bi bi-play"></i> დაწყება
+    </button>
+    <button class="btn btn-sm btn-light" onclick="bulkUpdateStatus('completed')">
+        <i class="bi bi-check"></i> დასრულება
+    </button>
+    <button class="btn btn-sm btn-danger" onclick="bulkDelete()">
+        <i class="bi bi-trash"></i> წაშლა
+    </button>
+</div>
+
+<!-- Tasks List -->
+<div id="tasksList">
+    {% for task in tasks %}
+    <div class="task-card status-{{ task.status }}" data-task-id="{{ task.id }}">
+        <div class="d-flex align-items-center gap-3">
+            <input type="checkbox" class="form-check-input task-checkbox" value="{{ task.id }}" onchange="updateBulkSelection()">
+            <div class="task-info">
+                <h6>
+                    {% if task.schedule.equipment %}
+                        {{ task.schedule.equipment.name }}
+                    {% else %}
+                        დანადგარი არ არის
+                    {% endif %}
+                    <small class="text-muted">- {{ task.schedule.task_name }}</small>
+                </h6>
+                <div class="task-meta">
+                    <span><i class="bi bi-building"></i>{{ task.schedule.equipment.site.name|default:"-" }}</span>
+                    <span><i class="bi bi-person"></i>{{ task.assigned_to.get_full_name|default:task.assigned_to.username }}</span>
+                    <span><i class="bi bi-calendar"></i>{{ task.scheduled_date|date:"d M Y" }}</span>
+                    {% if task.schedule.equipment.category %}
+                    <span style="color: {{ task.schedule.equipment.category.color }};">
+                        <i class="{{ task.schedule.equipment.category.icon }}"></i>{{ task.schedule.equipment.category.name }}
+                    </span>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+        
+        <div class="task-actions">
+            <span class="status-badge status-{{ task.status }}">{{ task.get_status_display }}</span>
+            
+            <div class="dropdown">
+                <button class="btn btn-sm btn-outline-secondary dropdown-toggle" data-bs-toggle="dropdown">
+                    <i class="bi bi-three-dots"></i>
+                </button>
+                <ul class="dropdown-menu dropdown-menu-end">
+                    <li><a class="dropdown-item" href="#" onclick="openTaskModal({{ task.id }})"><i class="bi bi-pencil me-2"></i>რედაქტირება</a></li>
+                    <li><hr class="dropdown-divider"></li>
+                    <li><a class="dropdown-item" href="#" onclick="quickStatus({{ task.id }}, 'pending')"><i class="bi bi-circle me-2"></i>მოლოდინში</a></li>
+                    <li><a class="dropdown-item" href="#" onclick="quickStatus({{ task.id }}, 'in_progress')"><i class="bi bi-play-fill me-2 text-warning"></i>დაწყება</a></li>
+                    <li><a class="dropdown-item" href="#" onclick="quickStatus({{ task.id }}, 'completed')"><i class="bi bi-check-lg me-2 text-success"></i>დასრულება</a></li>
+                    <li><a class="dropdown-item" href="#" onclick="quickStatus({{ task.id }}, 'approved')"><i class="bi bi-hand-thumbs-up me-2 text-info"></i>დამტკიცება</a></li>
+                    <li><hr class="dropdown-divider"></li>
+                    <li><a class="dropdown-item text-danger" href="#" onclick="deleteTask({{ task.id }})"><i class="bi bi-trash me-2"></i>წაშლა</a></li>
+                </ul>
+            </div>
+            
+            <a href="{% url 'task_detail' task.id %}" class="btn btn-sm btn-primary">
+                <i class="bi bi-eye"></i>
+            </a>
+        </div>
+    </div>
+    {% empty %}
+    <div class="empty-state">
+        <i class="bi bi-inbox"></i>
+        <h5>დავალებები არ მოიძებნა</h5>
+        <p>გამოიყენეთ "ტასკების გენერაცია" ღილაკი ახლის შესაქმნელად</p>
+    </div>
+    {% endfor %}
+</div>
+
+<!-- Edit Task Modal -->
+<div class="modal fade" id="taskModal" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header bg-primary text-white">
+                <h5 class="modal-title"><i class="bi bi-pencil-square me-2"></i>დავალების რედაქტირება</h5>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+            </div>
+            <form id="editTaskForm">
+                {% csrf_token %}
+                <input type="hidden" id="edit_task_id">
+                <div class="modal-body">
+                    <div class="mb-3">
+                        <label class="form-label">დანადგარი / შემოწმება</label>
+                        <input type="text" id="edit_task_name" class="form-control" readonly>
+                    </div>
+                    <div class="row">
+                        <div class="col-md-6 mb-3">
+                            <label class="form-label">თარიღი</label>
+                            <input type="datetime-local" id="edit_scheduled_date" class="form-control">
+                        </div>
+                        <div class="col-md-6 mb-3">
+                            <label class="form-label">ინსპექტორი</label>
+                            <select id="edit_inspector" class="form-select">
+                                {% for inspector in inspectors %}
+                                <option value="{{ inspector.id }}">{{ inspector.get_full_name|default:inspector.username }}</option>
+                                {% endfor %}
+                            </select>
+                        </div>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">სტატუსი</label>
+                        <select id="edit_status" class="form-select">
+                            <option value="pending">მოლოდინში</option>
+                            <option value="in_progress">მიმდინარე</option>
+                            <option value="completed">დასრულებული</option>
+                            <option value="approved">დამტკიცებული</option>
+                            <option value="rejected">უარყოფილი</option>
+                        </select>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">გაუქმება</button>
+                    <button type="submit" class="btn btn-primary">შენახვა</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<!-- Toast -->
+<div class="position-fixed bottom-0 end-0 p-3" style="z-index: 11">
+    <div id="toast" class="toast" role="alert">
+        <div class="toast-header">
+            <strong class="me-auto" id="toastTitle">შეტყობინება</strong>
+            <button type="button" class="btn-close" data-bs-dismiss="toast"></button>
+        </div>
+        <div class="toast-body" id="toastBody"></div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+const csrfToken = document.querySelector('[name=csrfmiddlewaretoken]').value;
+
+function filterByStatus(status) {
+    const url = new URL(window.location);
+    if (status) {
+        url.searchParams.set('status', status);
+    } else {
+        url.searchParams.delete('status');
+    }
+    window.location = url;
+}
+
+function quickStatus(taskId, status) {
+    fetch('/task-update/' + taskId + '/', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', 'X-CSRFToken': csrfToken },
+        body: JSON.stringify({ status: status })
+    })
+    .then(r => r.json())
+    .then(data => {
+        if (data.success) {
+            showToast('წარმატება', 'სტატუსი განახლდა', 'success');
+            setTimeout(() => location.reload(), 500);
+        }
+    });
+}
+
+function deleteTask(taskId) {
+    if (!confirm('დარწმუნებული ხარ რომ გინდა წაშლა?')) return;
+    fetch('/task-delete/' + taskId + '/', {
+        method: 'POST',
+        headers: { 'X-CSRFToken': csrfToken }
+    })
+    .then(() => {
+        showToast('წარმატება', 'დავალება წაიშალა', 'warning');
+        document.querySelector(`[data-task-id="${taskId}"]`).remove();
+    });
+}
+
+function openTaskModal(taskId) {
+    fetch('/task-detail/' + taskId + '/')
+    .then(r => r.json())
+    .then(data => {
+        document.getElementById('edit_task_id').value = taskId;
+        document.getElementById('edit_task_name').value = data.equipment_name + ' - ' + data.schedule_name;
+        if (data.scheduled_date) {
+            document.getElementById('edit_scheduled_date').value = data.scheduled_date.slice(0, 16);
+        }
+        document.getElementById('edit_inspector').value = data.assigned_to_id || '';
+        document.getElementById('edit_status').value = data.status || 'pending';
+        new bootstrap.Modal(document.getElementById('taskModal')).show();
+    });
+}
+
+document.getElementById('editTaskForm').addEventListener('submit', function(e) {
+    e.preventDefault();
+    const taskId = document.getElementById('edit_task_id').value;
+    fetch('/task-update/' + taskId + '/', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', 'X-CSRFToken': csrfToken },
+        body: JSON.stringify({
+            scheduled_date: document.getElementById('edit_scheduled_date').value,
+            assigned_to: document.getElementById('edit_inspector').value,
+            status: document.getElementById('edit_status').value
+        })
+    })
+    .then(r => r.json())
+    .then(data => {
+        if (data.success) {
+            bootstrap.Modal.getInstance(document.getElementById('taskModal')).hide();
+            showToast('წარმატება', 'დავალება განახლდა', 'success');
+            setTimeout(() => location.reload(), 500);
+        }
+    });
+});
+
+function updateBulkSelection() {
+    const checked = document.querySelectorAll('.task-checkbox:checked');
+    document.getElementById('selectedCount').textContent = checked.length;
+    document.getElementById('bulkActions').classList.toggle('show', checked.length > 0);
+}
+
+function getSelectedIds() {
+    return Array.from(document.querySelectorAll('.task-checkbox:checked')).map(cb => cb.value);
+}
+
+function bulkUpdateStatus(status) {
+    const ids = getSelectedIds();
+    Promise.all(ids.map(id => 
+        fetch('/task-update/' + id + '/', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json', 'X-CSRFToken': csrfToken },
+            body: JSON.stringify({ status: status })
+        })
+    )).then(() => {
+        showToast('წარმატება', ids.length + ' დავალება განახლდა', 'success');
+        setTimeout(() => location.reload(), 500);
+    });
+}
+
+function bulkDelete() {
+    const ids = getSelectedIds();
+    if (!confirm(ids.length + ' დავალების წაშლა?')) return;
+    Promise.all(ids.map(id => 
+        fetch('/task-delete/' + id + '/', {
+            method: 'POST',
+            headers: { 'X-CSRFToken': csrfToken }
+        })
+    )).then(() => {
+        showToast('წარმატება', ids.length + ' დავალება წაიშალა', 'warning');
+        setTimeout(() => location.reload(), 500);
+    });
+}
+
+function showToast(title, message, type) {
+    const toast = document.getElementById('toast');
+    toast.className = 'toast bg-' + type + ' text-white';
+    document.getElementById('toastTitle').textContent = title;
+    document.getElementById('toastBody').textContent = message;
+    new bootstrap.Toast(toast).show();
+}
+</script>
+{% endblock %}

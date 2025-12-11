@@ -1,0 +1,101 @@
+{% extends 'manager/base.html' %}
+
+{% block title %}შემოწმებების გრაფიკი{% endblock %}
+
+{% block content %}
+<div class="d-flex justify-content-between mb-4">
+    <h2><i class="bi bi-calendar-check-fill"></i> შემოწმებების გრაფიკი</h2>
+    <button class="btn btn-warning" data-bs-toggle="modal" data-bs-target="#addModal">
+        <i class="bi bi-plus-circle"></i> დამატება
+    </button>
+</div>
+
+<div class="card">
+    <div class="card-body">
+        <table class="table table-hover table-sm">
+            <thead>
+                <tr>
+                    <th>ID</th>
+                    <th>დანადგარი</th>
+                    <th>შემოწმება</th>
+                    <th>სიხშირე</th>
+                    <th>მოქმედებები</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for schedule in schedules %}
+                <tr>
+                    <td>{{ schedule.id }}</td>
+                    <td>{{ schedule.equipment.site.name }} - {{ schedule.equipment.name }}</td>
+                    <td><strong>{{ schedule.task_name }}</strong></td>
+                    <td><span class="badge bg-primary">{{ schedule.get_frequency_display }}</span></td>
+                    <td>
+                        <a href="/schedules/{{ schedule.id }}/delete/" 
+                           class="btn btn-sm btn-danger"
+                           onclick="return confirm('წაშლა დარწმუნებული ხარ?')">
+                            <i class="bi bi-trash"></i>
+                        </a>
+                    </td>
+                </tr>
+                {% empty %}
+                <tr>
+                    <td colspan="5" class="text-center text-muted">გრაფიკი არ არის</td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div>
+
+<!-- Add Modal -->
+<div class="modal fade" id="addModal" tabindex="-1">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">ახალი შემოწმება</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <form method="POST" action="/schedules/create/">
+                {% csrf_token %}
+                <div class="modal-body">
+                    <div class="row mb-3">
+                        <div class="col-md-6">
+                            <label class="form-label">დანადგარი *</label>
+                            <select name="equipment" class="form-select" required>
+                                {% for equip in equipment_list %}
+                                <option value="{{ equip.id }}">
+                                    {{ equip.site.company.name }} - {{ equip.site.name }} - {{ equip.name }}
+                                </option>
+                                {% endfor %}
+                            </select>
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label">სიხშირე *</label>
+                            <select name="frequency" class="form-select" required>
+                                <option value="monthly">თვიური</option>
+                                <option value="quarterly">კვარტალური</option>
+                                <option value="biannual">ნახევარწლიური</option>
+                                <option value="annual">წლიური</option>
+                            </select>
+                        </div>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">შემოწმების ტიპი *</label>
+                        <select name="task_name" class="form-select" required>
+                            <option value="მექანიკურ დაზიანებაზე შემოწმება">მექანიკურ დაზიანებაზე შემოწმება</option>
+                            <option value="ელექტრო დაზიანებაზე შემოწმება">ელექტრო დაზიანებაზე შემოწმება</option>
+                            <option value="ვიზუალური დაზიანებაზე შემოწმება">ვიზუალური დაზიანებაზე შემოწმება</option>
+                            <option value="ჰაერის ფილტრების წმენდა">ჰაერის ფილტრების წმენდა</option>
+                            <option value="დრენაჟის შემოწმება">დრენაჟის შემოწმება</option>
+                        </select>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">გაუქმება</button>
+                    <button type="submit" class="btn btn-warning">შენახვა</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+{% endblock %}

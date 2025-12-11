@@ -1,0 +1,54 @@
+{% extends 'base/base.html' %}
+
+{% block title %}ინსპექტორის პანელი{% endblock %}
+
+{% block content %}
+<div class="row mb-4">
+    <div class="col">
+        <h2><i class="bi bi-clipboard-check"></i> ჩემი დავალებები</h2>
+    </div>
+</div>
+
+<div class="row">
+    {% for task in tasks %}
+    <div class="col-md-6 mb-3">
+        <div class="card">
+            <div class="card-header bg-{% if task.status == 'completed' or task.status == 'approved' %}success{% elif task.status == 'in_progress' %}warning{% else %}secondary{% endif %} text-white">
+                <h5 class="mb-0">{{ task.schedule.task_name }}</h5>
+            </div>
+            <div class="card-body">
+                <p><strong>ობიექტი:</strong> {{ task.schedule.equipment.site.name }}</p>
+                <p><strong>დანადგარი:</strong> {{ task.schedule.equipment.name }}</p>
+                <p><strong>დაგეგმილი თარიღი:</strong> {{ task.scheduled_date|date:"d M Y, H:i" }}</p>
+                <p>
+                    <span class="badge bg-{% if task.status == 'completed' or task.status == 'approved' %}success{% elif task.status == 'in_progress' %}warning{% else %}secondary{% endif %}">
+                        {{ task.get_status_display }}
+                    </span>
+                </p>
+                
+                <div class="d-flex gap-2">
+                    {% if task.status == 'pending' or task.status == 'in_progress' %}
+                    <a href="/tasks/{{ task.id }}/" class="btn btn-primary">
+                        <i class="bi bi-pencil-square"></i> შესრულება
+                    </a>
+                    {% else %}
+                    <a href="/tasks/{{ task.id }}/" class="btn btn-success">
+                        <i class="bi bi-eye"></i> ნახვა
+                    </a>
+                    <a href="/reports/task/{{ task.id }}/pdf/" class="btn btn-danger">
+                        <i class="bi bi-file-earmark-pdf"></i> PDF
+                    </a>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+    </div>
+    {% empty %}
+    <div class="col-12">
+        <div class="alert alert-info">
+            <i class="bi bi-info-circle"></i> დავალებები არ არის
+        </div>
+    </div>
+    {% endfor %}
+</div>
+{% endblock %}

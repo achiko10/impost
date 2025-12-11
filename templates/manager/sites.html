@@ -1,0 +1,86 @@
+{% extends 'manager/base.html' %}
+
+{% block title %}ობიექტები{% endblock %}
+
+{% block content %}
+<div class="d-flex justify-content-between mb-4">
+    <h2><i class="bi bi-geo-alt-fill"></i> ობიექტები</h2>
+    <button class="btn btn-success" data-bs-toggle="modal" data-bs-target="#addModal">
+        <i class="bi bi-plus-circle"></i> დამატება
+    </button>
+</div>
+
+<div class="card">
+    <div class="card-body">
+        <table class="table table-hover">
+            <thead>
+                <tr>
+                    <th>ID</th>
+                    <th>კომპანია</th>
+                    <th>ობიექტი</th>
+                    <th>მისამართი</th>
+                    <th>მოქმედებები</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for site in sites %}
+                <tr>
+                    <td>{{ site.id }}</td>
+                    <td>{{ site.company.name }}</td>
+                    <td><strong>{{ site.name }}</strong></td>
+                    <td>{{ site.address }}</td>
+                    <td>
+                        <a href="/sites/{{ site.id }}/delete/" 
+                           class="btn btn-sm btn-danger"
+                           onclick="return confirm('წაშლა დარწმუნებული ხარ?')">
+                            <i class="bi bi-trash"></i>
+                        </a>
+                    </td>
+                </tr>
+                {% empty %}
+                <tr>
+                    <td colspan="5" class="text-center text-muted">ობიექტები არ არის</td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div>
+
+<!-- Add Modal -->
+<div class="modal fade" id="addModal" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">ახალი ობიექტი</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <form method="POST" action="/sites/create/">
+                {% csrf_token %}
+                <div class="modal-body">
+                    <div class="mb-3">
+                        <label class="form-label">კომპანია *</label>
+                        <select name="company" class="form-select" required>
+                            {% for company in companies %}
+                            <option value="{{ company.id }}">{{ company.name }}</option>
+                            {% endfor %}
+                        </select>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">ობიექტის სახელი *</label>
+                        <input type="text" name="name" class="form-control" required>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">მისამართი *</label>
+                        <textarea name="address" class="form-control" rows="2" required></textarea>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">გაუქმება</button>
+                    <button type="submit" class="btn btn-success">შენახვა</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+{% endblock %}

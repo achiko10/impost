@@ -1,0 +1,357 @@
+{% extends 'manager/base.html' %}
+
+{% block title %}Dashboard{% endblock %}
+
+{% block content %}
+<div class="d-flex justify-content-between align-items-center mb-4">
+    <h2><i class="bi bi-speedometer2"></i> Dashboard</h2>
+    <div>
+        <a href="/manager/tasks/" class="btn btn-primary">
+            <i class="bi bi-list-task"></i> ტასკები
+        </a>
+        <a href="/calendar/" class="btn btn-outline-primary">
+            <i class="bi bi-calendar3"></i> კალენდარი
+        </a>
+    </div>
+</div>
+
+<!-- Main Stats Row -->
+<div class="row g-3 mb-4">
+    <div class="col-6 col-md-3">
+        <div class="card bg-primary text-white h-100">
+            <div class="card-body text-center">
+                <i class="bi bi-building fs-1"></i>
+                <h2 class="mb-0">{{ stats.companies }}</h2>
+                <small>კომპანიები</small>
+            </div>
+        </div>
+    </div>
+    <div class="col-6 col-md-3">
+        <div class="card bg-success text-white h-100">
+            <div class="card-body text-center">
+                <i class="bi bi-geo-alt fs-1"></i>
+                <h2 class="mb-0">{{ stats.sites }}</h2>
+                <small>ობიექტები</small>
+            </div>
+        </div>
+    </div>
+    <div class="col-6 col-md-3">
+        <div class="card bg-info text-white h-100">
+            <div class="card-body text-center">
+                <i class="bi bi-gear fs-1"></i>
+                <h2 class="mb-0">{{ stats.equipment }}</h2>
+                <small>დანადგარები</small>
+            </div>
+        </div>
+    </div>
+    <div class="col-6 col-md-3">
+        <div class="card bg-secondary text-white h-100">
+            <div class="card-body text-center">
+                <i class="bi bi-calendar-check fs-1"></i>
+                <h2 class="mb-0">{{ stats.schedules }}</h2>
+                <small>გრაფიკები</small>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Task Stats Row -->
+<div class="row g-3 mb-4">
+    <div class="col-4 col-md-2">
+        <div class="card border-warning h-100">
+            <div class="card-body text-center py-2">
+                <h3 class="text-warning mb-0">{{ stats.tasks_pending }}</h3>
+                <small class="text-muted">მოლოდინში</small>
+            </div>
+        </div>
+    </div>
+    <div class="col-4 col-md-2">
+        <div class="card border-info h-100">
+            <div class="card-body text-center py-2">
+                <h3 class="text-info mb-0">{{ stats.tasks_in_progress }}</h3>
+                <small class="text-muted">მიმდინარე</small>
+            </div>
+        </div>
+    </div>
+    <div class="col-4 col-md-2">
+        <div class="card border-success h-100">
+            <div class="card-body text-center py-2">
+                <h3 class="text-success mb-0">{{ stats.tasks_completed }}</h3>
+                <small class="text-muted">დასრულებული</small>
+            </div>
+        </div>
+    </div>
+    <div class="col-4 col-md-2">
+        <div class="card border-primary h-100">
+            <div class="card-body text-center py-2">
+                <h3 class="text-primary mb-0">{{ stats.tasks_approved }}</h3>
+                <small class="text-muted">დამტკიცებული</small>
+            </div>
+        </div>
+    </div>
+    <div class="col-4 col-md-2">
+        <div class="card border-danger h-100">
+            <div class="card-body text-center py-2">
+                <h3 class="text-danger mb-0">{{ stats.tasks_rejected }}</h3>
+                <small class="text-muted">უარყოფილი</small>
+            </div>
+        </div>
+    </div>
+    <div class="col-4 col-md-2">
+        <div class="card bg-danger text-white h-100">
+            <div class="card-body text-center py-2">
+                <h3 class="mb-0">{{ stats.tasks_overdue }}</h3>
+                <small>ვადაგასული</small>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="row g-4">
+    <!-- Charts Column -->
+    <div class="col-lg-8">
+        <div class="row g-4">
+            <!-- Task Status Pie Chart -->
+            <div class="col-md-6">
+                <div class="card h-100">
+                    <div class="card-header bg-white">
+                        <h6 class="mb-0"><i class="bi bi-pie-chart"></i> ტასკების სტატუსი</h6>
+                    </div>
+                    <div class="card-body">
+                        <canvas id="taskStatusChart" style="max-height: 250px;"></canvas>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Monthly Completion Chart -->
+            <div class="col-md-6">
+                <div class="card h-100">
+                    <div class="card-header bg-white">
+                        <h6 class="mb-0"><i class="bi bi-bar-chart"></i> თვიური დასრულებები</h6>
+                    </div>
+                    <div class="card-body">
+                        <canvas id="monthlyChart" style="max-height: 250px;"></canvas>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Inspector Performance -->
+        <div class="card mt-4">
+            <div class="card-header bg-white">
+                <h6 class="mb-0"><i class="bi bi-people"></i> ინსპექტორების აქტივობა</h6>
+            </div>
+            <div class="card-body">
+                {% if inspector_stats %}
+                <div class="table-responsive">
+                    <table class="table table-sm">
+                        <thead>
+                            <tr>
+                                <th>ინსპექტორი</th>
+                                <th class="text-center">სულ ტასკი</th>
+                                <th class="text-center">დასრულებული</th>
+                                <th class="text-center">პროგრესი</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for inspector in inspector_stats %}
+                            <tr>
+                                <td><i class="bi bi-person"></i> {{ inspector.username }}</td>
+                                <td class="text-center">{{ inspector.total_tasks }}</td>
+                                <td class="text-center">{{ inspector.completed_tasks }}</td>
+                                <td>
+                                    {% if inspector.total_tasks > 0 %}
+                                    {% widthratio inspector.completed_tasks inspector.total_tasks 100 as pct %}
+                                    <div class="progress" style="height: 20px;">
+                                        <div class="progress-bar bg-success" style="width: {{ pct }}%">{{ pct }}%</div>
+                                    </div>
+                                    {% else %}
+                                    <span class="text-muted">-</span>
+                                    {% endif %}
+                                </td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+                {% else %}
+                <p class="text-muted text-center mb-0">ინსპექტორები არ არის</p>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+    
+    <!-- Right Sidebar -->
+    <div class="col-lg-4">
+        <!-- Quick Actions -->
+        <div class="card mb-4">
+            <div class="card-header bg-primary text-white">
+                <h6 class="mb-0"><i class="bi bi-lightning"></i> სწრაფი მოქმედებები</h6>
+            </div>
+            <div class="card-body">
+                <div class="d-grid gap-2">
+                    <a href="/manager/companies/" class="btn btn-outline-primary">
+                        <i class="bi bi-building"></i> კომპანიების მართვა
+                    </a>
+                    <a href="/manager/equipment/" class="btn btn-outline-info">
+                        <i class="bi bi-gear"></i> დანადგარების მართვა
+                    </a>
+                    <a href="/manager/schedules/" class="btn btn-outline-secondary">
+                        <i class="bi bi-calendar-range"></i> გრაფიკების მართვა
+                    </a>
+                    <button class="btn btn-success" onclick="generateTasks()">
+                        <i class="bi bi-plus-circle"></i> ტასკების გენერაცია
+                    </button>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Urgent Tasks -->
+        <div class="card mb-4">
+            <div class="card-header bg-warning text-dark">
+                <h6 class="mb-0"><i class="bi bi-exclamation-triangle"></i> გადაუდებელი ტასკები</h6>
+            </div>
+            <div class="card-body p-0">
+                {% if urgent_tasks %}
+                <ul class="list-group list-group-flush">
+                    {% for task in urgent_tasks %}
+                    <li class="list-group-item d-flex justify-content-between align-items-center">
+                        <div>
+                            <small class="text-muted d-block">{{ task.schedule.equipment.name }}</small>
+                            {{ task.schedule.task_name|truncatechars:30 }}
+                        </div>
+                        <span class="badge bg-danger">{{ task.scheduled_date|date:"d M" }}</span>
+                    </li>
+                    {% endfor %}
+                </ul>
+                {% else %}
+                <p class="text-muted text-center py-4 mb-0">
+                    <i class="bi bi-check-circle fs-1 d-block"></i>
+                    გადაუდებელი ტასკები არ არის
+                </p>
+                {% endif %}
+            </div>
+        </div>
+        
+        <!-- Recent Activity -->
+        <div class="card">
+            <div class="card-header bg-white">
+                <h6 class="mb-0"><i class="bi bi-clock-history"></i> ბოლო აქტივობა</h6>
+            </div>
+            <div class="card-body p-0" style="max-height: 300px; overflow-y: auto;">
+                {% if recent_tasks %}
+                <ul class="list-group list-group-flush">
+                    {% for task in recent_tasks %}
+                    <li class="list-group-item py-2">
+                        <div class="d-flex justify-content-between">
+                            <small>{{ task.schedule.task_name|truncatechars:25 }}</small>
+                            <span class="badge 
+                                {% if task.status == 'pending' %}bg-warning text-dark
+                                {% elif task.status == 'in_progress' %}bg-info
+                                {% elif task.status == 'completed' %}bg-success
+                                {% elif task.status == 'approved' %}bg-primary
+                                {% else %}bg-danger{% endif %}">
+                                {{ task.get_status_display }}
+                            </span>
+                        </div>
+                        <small class="text-muted">{{ task.created_at|timesince }} წინ</small>
+                    </li>
+                    {% endfor %}
+                </ul>
+                {% else %}
+                <p class="text-muted text-center py-3 mb-0">აქტივობა არ არის</p>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+// Task Status Pie Chart
+const taskStatusCtx = document.getElementById('taskStatusChart').getContext('2d');
+new Chart(taskStatusCtx, {
+    type: 'doughnut',
+    data: {
+        labels: {{ task_status_data.labels|safe }},
+        datasets: [{
+            data: {{ task_status_data.values|safe }},
+            backgroundColor: {{ task_status_data.colors|safe }},
+            borderWidth: 0
+        }]
+    },
+    options: {
+        responsive: true,
+        maintainAspectRatio: true,
+        plugins: {
+            legend: {
+                position: 'bottom',
+                labels: { boxWidth: 12, padding: 8, font: { size: 11 } }
+            }
+        }
+    }
+});
+
+// Monthly Completion Bar Chart
+const monthlyCtx = document.getElementById('monthlyChart').getContext('2d');
+new Chart(monthlyCtx, {
+    type: 'bar',
+    data: {
+        labels: {{ monthly_data.labels|safe }},
+        datasets: [{
+            label: 'დასრულებული',
+            data: {{ monthly_data.values|safe }},
+            backgroundColor: '#198754',
+            borderRadius: 4
+        }]
+    },
+    options: {
+        responsive: true,
+        maintainAspectRatio: true,
+        plugins: {
+            legend: { display: false }
+        },
+        scales: {
+            y: { beginAtZero: true, ticks: { stepSize: 1 } }
+        }
+    }
+});
+
+// Generate tasks function
+function generateTasks() {
+    if (confirm('გსურთ ტასკების გენერაცია გრაფიკებიდან?')) {
+        fetch('/api/generate-tasks/', {
+            method: 'POST',
+            headers: {
+                'X-CSRFToken': document.querySelector('[name=csrfmiddlewaretoken]')?.value || getCookie('csrftoken'),
+                'Content-Type': 'application/json'
+            }
+        })
+        .then(r => r.json())
+        .then(data => {
+            alert(data.message || 'ტასკები წარმატებით შეიქმნა!');
+            location.reload();
+        })
+        .catch(() => {
+            alert('შეცდომა ტასკების გენერაციისას');
+        });
+    }
+}
+
+function getCookie(name) {
+    let cookieValue = null;
+    if (document.cookie && document.cookie !== '') {
+        const cookies = document.cookie.split(';');
+        for (let i = 0; i < cookies.length; i++) {
+            const cookie = cookies[i].trim();
+            if (cookie.substring(0, name.length + 1) === (name + '=')) {
+                cookieValue = decodeURIComponent(cookie.substring(name.length + 1));
+                break;
+            }
+        }
+    }
+    return cookieValue;
+}
+</script>
+{% endblock %}

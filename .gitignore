@@ -1,0 +1,21 @@
+*.pyc
+__pycache__/
+venv/
+.env
+db.sqlite3
+media/
+staticfiles/
+*.log
+
+# Backup DBs
+db_backup*.sqlite3
+
+# Development
+.venv/
+requirements-dev.txt
+.pytest_cache/
+coverage/
+
+# IDEs
+.vscode/
+.idea/

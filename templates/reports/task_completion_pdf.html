@@ -1,0 +1,290 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="UTF-8">
+    <title>სერვისის აქტი - {{ task.id }}</title>
+    <style>
+        @page {
+            size: A4;
+            margin: 1.5cm;
+        }
+        @font-face {
+            font-family: 'Noto Sans Georgian';
+            src: url('https://fonts.gstatic.com/s/notosansgeorgian/v42/PlIaFke5O6RzLfvNNVSitxkr76PRHBC4Ytyq-Gof7PUs4S7zWn-8YDB09HFNdpvnzFj-f5WK0OQV.woff2') format('woff2');
+            font-weight: normal;
+            font-style: normal;
+        }
+        @font-face {
+            font-family: 'Noto Sans Georgian';
+            src: url('https://fonts.gstatic.com/s/notosansgeorgian/v42/PlIhFke5O6RzLfvNNVSitxkr76PRHBC4Ytyq-Gof7PUs4S7zWn-8YDB09HFNdpvnzFj-f5WK0OQV.woff2') format('woff2');
+            font-weight: bold;
+            font-style: normal;
+        }
+        * {
+            font-family: 'Noto Sans Georgian', 'DejaVu Sans', Arial, sans-serif;
+        }
+        body {
+            font-size: 11pt;
+            line-height: 1.5;
+            color: #333;
+        }
+        .header {
+            text-align: center;
+            border-bottom: 3px solid #0d6efd;
+            padding-bottom: 15px;
+            margin-bottom: 20px;
+        }
+        .header h1 {
+            color: #0d6efd;
+            margin: 0;
+            font-size: 24pt;
+        }
+        .header .subtitle {
+            color: #666;
+            font-size: 12pt;
+            margin-top: 5px;
+        }
+        .doc-number {
+            background: #f8f9fa;
+            padding: 10px;
+            text-align: right;
+            margin-bottom: 20px;
+            border-radius: 5px;
+        }
+        .section {
+            margin-bottom: 25px;
+        }
+        .section-title {
+            background: #0d6efd;
+            color: white;
+            padding: 8px 15px;
+            font-size: 12pt;
+            font-weight: bold;
+            margin-bottom: 10px;
+        }
+        .info-table {
+            width: 100%;
+            border-collapse: collapse;
+        }
+        .info-table td {
+            padding: 8px;
+            border-bottom: 1px solid #eee;
+        }
+        .info-table td:first-child {
+            width: 40%;
+            font-weight: bold;
+            color: #555;
+        }
+        .status-badge {
+            display: inline-block;
+            padding: 5px 15px;
+            border-radius: 20px;
+            font-weight: bold;
+            font-size: 10pt;
+        }
+        .status-completed {
+            background: #d1e7dd;
+            color: #0f5132;
+        }
+        .status-approved {
+            background: #cfe2ff;
+            color: #084298;
+        }
+        .comment-box {
+            background: #f8f9fa;
+            padding: 15px;
+            border-left: 4px solid #0d6efd;
+            margin: 10px 0;
+        }
+        .photos-section {
+            margin-top: 20px;
+        }
+        .photo {
+            max-width: 200px;
+            max-height: 150px;
+            margin: 5px;
+            border: 1px solid #ddd;
+            border-radius: 5px;
+        }
+        .signature-section {
+            margin-top: 50px;
+            display: table;
+            width: 100%;
+        }
+        .signature-box {
+            display: table-cell;
+            width: 45%;
+            text-align: center;
+            padding: 20px;
+        }
+        .signature-line {
+            border-top: 1px solid #333;
+            margin-top: 50px;
+            padding-top: 5px;
+        }
+        .footer {
+            position: fixed;
+            bottom: 0;
+            left: 0;
+            right: 0;
+            text-align: center;
+            font-size: 9pt;
+            color: #999;
+            border-top: 1px solid #eee;
+            padding-top: 10px;
+        }
+        .watermark {
+            position: fixed;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%) rotate(-45deg);
+            font-size: 80pt;
+            color: rgba(0,0,0,0.03);
+            z-index: -1;
+        }
+    </style>
+</head>
+<body>
+    <div class="watermark">სერვის აქტი</div>
+    
+    <div class="header">
+        <h1>სერვისის აქტი</h1>
+        <div class="subtitle">სამონტაჟო-სარემონტო სამუშაოების დასრულების დოკუმენტი</div>
+    </div>
+    
+    <div class="doc-number">
+        <strong>დოკუმენტი №:</strong> ACT-{{ task.id }}-{{ generated_at|date:"Ymd" }}<br>
+        <strong>თარიღი:</strong> {{ generated_at|date:"d.m.Y H:i" }}
+    </div>
+    
+    <!-- კომპანია და ობიექტი -->
+    <div class="section">
+        <div class="section-title">კომპანია და ობიექტი</div>
+        <table class="info-table">
+            <tr>
+                <td>კომპანია:</td>
+                <td><strong>{{ company.name }}</strong></td>
+            </tr>
+            <tr>
+                <td>ობიექტი:</td>
+                <td>{{ site.name }}</td>
+            </tr>
+            <tr>
+                <td>მისამართი:</td>
+                <td>{{ site.address|default:"-" }}</td>
+            </tr>
+        </table>
+    </div>
+    
+    <!-- დანადგარი -->
+    <div class="section">
+        <div class="section-title">დანადგარის ინფორმაცია</div>
+        <table class="info-table">
+            <tr>
+                <td>დანადგარის დასახელება:</td>
+                <td><strong>{{ equipment.name }}</strong></td>
+            </tr>
+            <tr>
+                <td>ბრენდი:</td>
+                <td>{{ equipment.brand|default:"-" }}</td>
+            </tr>
+            <tr>
+                <td>მოდელი:</td>
+                <td>{{ equipment.model_number|default:"-" }}</td>
+            </tr>
+            <tr>
+                <td>სერიული ნომერი:</td>
+                <td>{{ equipment.serial_number|default:"-" }}</td>
+            </tr>
+            <tr>
+                <td>სისტემის ტიპი:</td>
+                <td>{{ equipment.get_system_type_display }}</td>
+            </tr>
+            {% if equipment.category %}
+            <tr>
+                <td>კატეგორია:</td>
+                <td>{{ equipment.category.name }}</td>
+            </tr>
+            {% endif %}
+            {% if equipment.location_detail %}
+            <tr>
+                <td>მდებარეობა:</td>
+                <td>{{ equipment.location_detail }}</td>
+            </tr>
+            {% endif %}
+        </table>
+    </div>
+    
+    <!-- შესრულებული სამუშაო -->
+    <div class="section">
+        <div class="section-title">შესრულებული სამუშაო</div>
+        <table class="info-table">
+            <tr>
+                <td>სამუშაოს დასახელება:</td>
+                <td><strong>{{ task.schedule.task_name }}</strong></td>
+            </tr>
+            <tr>
+                <td>სიხშირე:</td>
+                <td>{{ task.schedule.get_frequency_display }}</td>
+            </tr>
+            <tr>
+                <td>დაგეგმილი თარიღი:</td>
+                <td>{{ task.scheduled_date|date:"d.m.Y H:i" }}</td>
+            </tr>
+            <tr>
+                <td>დასრულების თარიღი:</td>
+                <td>{{ task.completed_date|date:"d.m.Y H:i"|default:generated_at|date:"d.m.Y H:i" }}</td>
+            </tr>
+            <tr>
+                <td>სტატუსი:</td>
+                <td>
+                    <span class="status-badge {% if task.status == 'approved' %}status-approved{% else %}status-completed{% endif %}">
+                        {% if task.status == 'approved' %}დამტკიცებული{% else %}დასრულებული{% endif %}
+                    </span>
+                </td>
+            </tr>
+            <tr>
+                <td>ინსპექტორი:</td>
+                <td>{{ task.assigned_to.get_full_name|default:task.assigned_to.username }}</td>
+            </tr>
+        </table>
+        
+        {% if report and report.comment %}
+        <div class="comment-box">
+            <strong>კომენტარი / შენიშვნები:</strong><br>
+            {{ report.comment }}
+        </div>
+        {% endif %}
+    </div>
+    
+    {% if photos %}
+    <!-- ფოტოები -->
+    <div class="section photos-section">
+        <div class="section-title">ფოტო მასალა</div>
+        {% for photo in photos %}
+        <img src="{{ photo.image.url }}" class="photo" alt="Photo {{ forloop.counter }}">
+        {% endfor %}
+    </div>
+    {% endif %}
+    
+    <!-- ხელმოწერები -->
+    <div class="signature-section">
+        <div class="signature-box">
+            <strong>შემსრულებელი:</strong>
+            <div class="signature-line">
+                {{ task.assigned_to.get_full_name|default:task.assigned_to.username }}
+            </div>
+        </div>
+        <div class="signature-box">
+            <strong>დამკვეთი:</strong>
+            <div class="signature-line">
+                _______________________
+            </div>
+        </div>
+    </div>
+    
+    <div class="footer">
+        გენერირებული: {{ generated_at|date:"d.m.Y H:i" }} | Maintenance Management System
+    </div>
+</body>
+</html>

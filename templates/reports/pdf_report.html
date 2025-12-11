@@ -1,0 +1,173 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="UTF-8">
+    <style>
+        @page {
+            size: A4;
+            margin: 2cm;
+        }
+        body {
+            font-family: DejaVu Sans, Arial, sans-serif;
+            font-size: 10pt;
+            line-height: 1.4;
+        }
+        h1 {
+            color: #0d6efd;
+            border-bottom: 3px solid #0d6efd;
+            padding-bottom: 10px;
+            margin-bottom: 20px;
+        }
+        h2 {
+            color: #198754;
+            margin-top: 25px;
+            border-bottom: 2px solid #198754;
+            padding-bottom: 5px;
+        }
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin: 15px 0;
+            font-size: 9pt;
+        }
+        th, td {
+            border: 1px solid #ddd;
+            padding: 6px;
+            text-align: left;
+        }
+        th {
+            background-color: #0d6efd;
+            color: white;
+        }
+        tr:nth-child(even) {
+            background-color: #f8f9fa;
+        }
+        .status-pending { color: #856404; background-color: #fff3cd; }
+        .status-in_progress { color: #0c5460; background-color: #d1ecf1; }
+        .status-completed { color: #155724; background-color: #d4edda; }
+        .status-approved { color: #004085; background-color: #cce5ff; }
+        .status-rejected { color: #721c24; background-color: #f8d7da; }
+        .stats-box {
+            background: #f8f9fa;
+            border: 1px solid #dee2e6;
+            padding: 15px;
+            margin: 20px 0;
+            border-radius: 5px;
+        }
+        .stats-box .stat {
+            display: inline-block;
+            margin-right: 30px;
+        }
+        .stats-box .stat-value {
+            font-size: 18pt;
+            font-weight: bold;
+            color: #0d6efd;
+        }
+        .header {
+            text-align: center;
+            margin-bottom: 30px;
+        }
+        .footer {
+            margin-top: 40px;
+            padding-top: 15px;
+            border-top: 1px solid #ccc;
+            font-size: 8pt;
+            color: #666;
+            text-align: center;
+        }
+    </style>
+</head>
+<body>
+    <div class="header">
+        <h1>{{ company.name }}</h1>
+        <p>ტექნიკური მომსახურების რეპორტი</p>
+        <p>გენერირებული: {{ generated_at|date:"d.m.Y H:i" }}</p>
+    </div>
+
+    <div class="stats-box">
+        <div class="stat">
+            <div class="stat-value">{{ stats.total }}</div>
+            <div>სულ ტასკი</div>
+        </div>
+        <div class="stat">
+            <div class="stat-value" style="color: #ffc107;">{{ stats.pending }}</div>
+            <div>მოლოდინში</div>
+        </div>
+        <div class="stat">
+            <div class="stat-value" style="color: #17a2b8;">{{ stats.in_progress }}</div>
+            <div>მიმდინარე</div>
+        </div>
+        <div class="stat">
+            <div class="stat-value" style="color: #28a745;">{{ stats.completed }}</div>
+            <div>დასრულებული</div>
+        </div>
+        <div class="stat">
+            <div class="stat-value" style="color: #007bff;">{{ stats.approved }}</div>
+            <div>დამტკიცებული</div>
+        </div>
+    </div>
+
+    <h2>დავალებების დეტალები</h2>
+    
+    <table>
+        <thead>
+            <tr>
+                <th>ობიექტი</th>
+                <th>დანადგარი</th>
+                <th>შემოწმება</th>
+                <th>ინსპექტორი</th>
+                <th>თარიღი</th>
+                <th>სტატუსი</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for task in tasks %}
+            <tr>
+                <td>{{ task.schedule.equipment.site.name }}</td>
+                <td>{{ task.schedule.equipment.name }}</td>
+                <td>{{ task.schedule.task_name }}</td>
+                <td>{{ task.assigned_to.username|default:"-" }}</td>
+                <td>{{ task.scheduled_date|date:"d.m.Y" }}</td>
+                <td class="status-{{ task.status }}">{{ task.get_status_display }}</td>
+            </tr>
+            {% empty %}
+            <tr>
+                <td colspan="6" style="text-align: center;">დავალებები არ არის</td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+
+    <div class="footer">
+        <p>Maintenance Management System | {{ generated_at|date:"Y" }}</p>
+    </div>
+</body>
+</html>
+                    <td>{{ task.scheduled_date|date:"d M Y" }}</td>
+                    <td>{{ task.assigned_to.get_full_name|default:task.assigned_to.username }}</td>
+                    <td>{{ task.get_status_display }}</td>
+                </tr>
+                {% if task.report %}
+                <tr>
+                    <td colspan="5">
+                        <strong>კომენტარი:</strong> {{ task.report.comment }}
+                        <br>
+                        {% for photo in task.report.photos.all %}
+                        <img src="{{ photo.image.path }}" class="photo" alt="Photo">
+                        {% endfor %}
+                    </td>
+                </tr>
+                {% endif %}
+                {% endfor %}
+            {% endfor %}
+        </tbody>
+    </table>
+    {% endfor %}
+    {% endfor %}
+
+    <div class="footer">
+        <p>რეპორტი გენერირებული: {{ current_date }}</p>
+        <p>Maintenance Management System</p>
+    </div>
+</body>
+</html>
