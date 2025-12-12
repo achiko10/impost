@@ -8,6 +8,14 @@ class Command(BaseCommand):
     help = "Create initial superuser and test users"
 
     def handle(self, *args, **options):
+        # Try to get McDonald's company for client
+        mcdonalds = None
+        try:
+            from apps.companies.models import Company
+            mcdonalds = Company.objects.filter(name="McDonald's Georgia").first()
+        except Exception:
+            pass
+
         # Create superuser
         if not User.objects.filter(username="admin").exists():
             User.objects.create_superuser(
@@ -46,17 +54,26 @@ class Command(BaseCommand):
             )
             self.stdout.write(self.style.SUCCESS("Inspector 'inspector1' created"))
 
-        # Create client
+        # Create client (with company)
         if not User.objects.filter(username="client1").exists():
-            User.objects.create_user(
+            client = User.objects.create_user(
                 username="client1",
                 email="client@imposti.ge",
                 password="client123",
                 role="client",
                 first_name="კლიენტი",
                 last_name="პირველი",
+                company=mcdonalds,
             )
-            self.stdout.write(self.style.SUCCESS("Client 'client1' created"))
+            self.stdout.write(self.style.SUCCESS(f"Client 'client1' created (company: {mcdonalds})"))
+        else:
+            # Update existing client with company
+            client = User.objects.get(username="client1")
+            if mcdonalds and not client.company:
+                client.company = mcdonalds
+                client.save()
+                self.stdout.write(self.style.SUCCESS(f"Client 'client1' updated with company: {mcdonalds}"))
+
 
         self.stdout.write(self.style.SUCCESS("\n=== All users created successfully! ==="))
         self.stdout.write("Admin: admin / admin123secure")
