@@ -160,6 +160,24 @@ def task_detail_api(request, task_id):
         except Exception:
             scheduled_date = str(task.scheduled_date)
 
+    # Get report and photos
+    report_data = None
+    if hasattr(task, 'report') and task.report:
+        photos = []
+        if hasattr(task.report, 'photos'):
+            for photo in task.report.photos.all():
+                photos.append({
+                    'id': photo.id,
+                    'image': photo.image.url if photo.image else '',
+                    'uploaded_at': photo.uploaded_at.isoformat() if photo.uploaded_at else None
+                })
+        report_data = {
+            'id': task.report.id,
+            'comment': task.report.comment,
+            'created_at': task.report.created_at.isoformat() if task.report.created_at else None,
+            'photos': photos
+        }
+
     return Response(
         {
             "id": task.id,
@@ -170,6 +188,7 @@ def task_detail_api(request, task_id):
             ),
             "status": task.status,
             "scheduled_date": scheduled_date,
+            "report": report_data
         }
     )
 

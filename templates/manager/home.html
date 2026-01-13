@@ -2,6 +2,66 @@
 
 {% block title %}Dashboard{% endblock %}
 
+{% block extra_css %}
+<style>
+    /* Equipment name truncation */
+    .equipment-name {
+        max-width: 100%;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+    }
+    
+    /* Chart responsive */
+    #taskStatusChart, #monthlyChart {
+        max-width: 100% !important;
+    }
+    
+    @media (max-width: 768px) {
+        #taskStatusChart, #monthlyChart {
+            max-height: 200px !important;
+        }
+        .card-header h6 {
+            font-size: 0.9rem;
+        }
+        .card-body {
+            padding: 1rem 0.75rem;
+        }
+    }
+    
+    @media (max-width: 576px) {
+        .card-body {
+            padding: 0.75rem;
+        }
+        .card-body .fs-1 {
+            font-size: 1.5rem !important;
+        }
+        h2 {
+            font-size: 1.25rem;
+        }
+        .btn-group {
+            flex-wrap: wrap;
+        }
+        .table {
+            font-size: 0.85rem;
+        }
+        .table thead th {
+            padding: 0.5rem;
+        }
+        .table td {
+            padding: 0.5rem;
+        }
+        #taskStatusChart, #monthlyChart {
+            max-height: 180px !important;
+        }
+        .col-lg-8 {
+            margin-right: auto;
+            margin-left: auto;
+        }
+    }
+</style>
+{% endblock %}
+
 {% block content %}
 <div class="d-flex justify-content-between align-items-center mb-4">
     <h2><i class="bi bi-speedometer2"></i> Dashboard</h2>
@@ -271,6 +331,21 @@
 <script>
 // Task Status Pie Chart
 const taskStatusCtx = document.getElementById('taskStatusChart').getContext('2d');
+const chartConfig = {
+    responsive: true,
+    maintainAspectRatio: true,
+    plugins: {
+        legend: {
+            position: window.innerWidth <= 768 ? 'bottom' : 'bottom',
+            labels: { 
+                boxWidth: window.innerWidth <= 768 ? 10 : 12, 
+                padding: window.innerWidth <= 768 ? 6 : 8, 
+                font: { size: window.innerWidth <= 768 ? 9 : 11 } 
+            }
+        }
+    }
+};
+
 new Chart(taskStatusCtx, {
     type: 'doughnut',
     data: {
@@ -281,16 +356,7 @@ new Chart(taskStatusCtx, {
             borderWidth: 0
         }]
     },
-    options: {
-        responsive: true,
-        maintainAspectRatio: true,
-        plugins: {
-            legend: {
-                position: 'bottom',
-                labels: { boxWidth: 12, padding: 8, font: { size: 11 } }
-            }
-        }
-    }
+    options: chartConfig
 });
 
 // Monthly Completion Bar Chart
@@ -310,6 +376,12 @@ new Chart(monthlyCtx, {
         responsive: true,
         maintainAspectRatio: true,
         plugins: {
+            legend: {
+                labels: { 
+                    font: { size: window.innerWidth <= 768 ? 10 : 12 } 
+                }
+            }
+        },
             legend: { display: false }
         },
         scales: {

@@ -9,6 +9,13 @@ from datetime import timedelta
 from .models import Company, Site, Equipment, EquipmentCategory
 from apps.tasks.models import MaintenanceSchedule, Task
 from apps.accounts.models import User
+from rest_framework.decorators import api_view, permission_classes, authentication_classes
+from rest_framework.response import Response
+from rest_framework.permissions import IsAuthenticated
+from rest_framework.authentication import SessionAuthentication
+from rest_framework_simplejwt.authentication import JWTAuthentication
+from rest_framework import status
+from .serializers import EquipmentSerializer
 
 # ==================== MANAGER DASHBOARD ====================
 
@@ -40,15 +47,16 @@ def manager_main_dashboard(request):
     
     # Task status distribution for pie chart
     task_status_data = {
-        'labels': ['მოლოდინში', 'მიმდინარე', 'დასრულებული', 'დამტკიცებული', 'უარყოფილი'],
+        'labels': ['მოლოდინში', 'მიმდინარე', 'დასრულებული', 'დამტკიცებული', 'უარყოფილი', 'ვადაგასული'],
         'values': [
             stats['tasks_pending'],
             stats['tasks_in_progress'],
             stats['tasks_completed'],
             stats['tasks_approved'],
             stats['tasks_rejected'],
+            stats['tasks_overdue'],
         ],
-        'colors': ['#ffc107', '#0dcaf0', '#198754', '#0d6efd', '#dc3545']
+        'colors': ['#ffc107', '#0dcaf0', '#198754', '#0d6efd', '#dc3545', '#ff6b6b']
     }
     
     # Monthly task completion trend
@@ -266,6 +274,34 @@ def create_equipment(request):
 
 
 @login_required
+def edit_equipment(request, equipment_id):
+    if request.user.role != "manager":
+        return redirect("dashboard")
+
+    equipment = get_object_or_404(Equipment, id=equipment_id)
+
+    if request.method == "POST":
+        equipment.site_id = request.POST.get("site")
+        equipment.category_id = request.POST.get("category") or None
+        equipment.name = request.POST.get("name")
+        equipment.brand = request.POST.get("brand", "")
+        equipment.model_number = request.POST.get("model_number", "")
+        equipment.serial_number = request.POST.get("serial_number", "")
+        equipment.system_type = request.POST.get("system_type", "heating_cooling")
+        equipment.status = request.POST.get("status", "active")
+        equipment.location_detail = request.POST.get("location_detail", "")
+        equipment.installation_date = request.POST.get("installation_date") or None
+        equipment.warranty_end = request.POST.get("warranty_end") or None
+        equipment.notes = request.POST.get("notes", "")
+        equipment.save()
+
+        messages.success(request, f'მოწყობილობა "{equipment.name}" განახლდა!')
+        return redirect("equipment_list")
+
+    return redirect("equipment_list")
+
+
+@login_required
 def create_category(request):
     """ახალი კატეგორიის შექმნა"""
     if request.user.role != "manager":
@@ -302,6 +338,22 @@ def delete_equipment(request, equipment_id):
     equipment.delete()
     messages.success(request, "დანადგარი წაშლილია!")
     return redirect("equipment_list")
+
+
+@api_view(["GET"])
+@authentication_classes([SessionAuthentication, JWTAuthentication])
+@permission_classes([IsAuthenticated])
+def equipment_detail_api(request, equipment_id):
+    """Equipment დეტალები API"""
+    if request.user.role != "manager":
+        return Response(
+            {"error": "Not authorized"},
+            status=status.HTTP_403_FORBIDDEN
+        )
+    
+    equipment = get_object_or_404(Equipment, id=equipment_id)
+    serializer = EquipmentSerializer(equipment)
+    return Response(serializer.data)
 
 
 # ==================== SCHEDULES ====================

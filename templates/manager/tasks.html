@@ -302,6 +302,22 @@
                             <option value="rejected">უარყოფილი</option>
                         </select>
                     </div>
+                    
+                    <!-- Report Section -->
+                    <div class="mb-3" id="reportSection" style="display: none;">
+                        <hr>
+                        <h6 class="mb-3"><i class="bi bi-file-text me-2"></i>რეპორტი</h6>
+                        
+                        <div class="mb-3">
+                            <label class="form-label">კომენტარი</label>
+                            <div id="reportComment" class="form-control" style="height: auto; background: #f8f9fa; cursor: default;"></div>
+                        </div>
+                        
+                        <div id="photosSection" style="display: none;">
+                            <label class="form-label">ფოტოები</label>
+                            <div id="taskPhotos" class="row g-2"></div>
+                        </div>
+                    </div>
                 </div>
                 <div class="modal-footer">
                     <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">გაუქმება</button>
@@ -320,6 +336,20 @@
             <button type="button" class="btn-close" data-bs-dismiss="toast"></button>
         </div>
         <div class="toast-body" id="toastBody"></div>
+    </div>
+</div>
+
+<!-- Photo Viewer Modal -->
+<div class="modal fade" id="photoModal" tabindex="-1">
+    <div class="modal-dialog modal-lg modal-dialog-centered">
+        <div class="modal-content">
+            <div class="modal-header">
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body text-center">
+                <img id="photoImage" src="" class="img-fluid" style="max-height: 70vh; object-fit: contain;">
+            </div>
+        </div>
     </div>
 </div>
 {% endblock %}
@@ -376,8 +406,51 @@ function openTaskModal(taskId) {
         }
         document.getElementById('edit_inspector').value = data.assigned_to_id || '';
         document.getElementById('edit_status').value = data.status || 'pending';
+        
+        // Show report section if task is completed
+        const reportSection = document.getElementById('reportSection');
+        const photosSection = document.getElementById('photosSection');
+        const reportComment = document.getElementById('reportComment');
+        const taskPhotos = document.getElementById('taskPhotos');
+        
+        if (data.report) {
+            reportSection.style.display = 'block';
+            reportComment.textContent = data.report.comment || 'კომენტარი არ არის';
+            
+            // Display photos
+            if (data.report.photos && data.report.photos.length > 0) {
+                photosSection.style.display = 'block';
+                taskPhotos.innerHTML = '';
+                
+                data.report.photos.forEach((photo, index) => {
+                    const photoHTML = `
+                        <div class="col-6 col-md-4">
+                            <div class="position-relative">
+                                <img src="${photo.image}" class="img-fluid rounded" style="width: 100%; height: 150px; object-fit: cover; cursor: pointer;" 
+                                     onclick="openPhotoModal('${photo.image}')" alt="ფოტო ${index + 1}">
+                            </div>
+                        </div>
+                    `;
+                    taskPhotos.innerHTML += photoHTML;
+                });
+            } else {
+                photosSection.style.display = 'none';
+            }
+        } else {
+            reportSection.style.display = 'none';
+        }
+        
         new bootstrap.Modal(document.getElementById('taskModal')).show();
+    })
+    .catch(err => {
+        showToast('შეცდომა', 'დავალება ვერ მოიძებნა', 'danger');
     });
+}
+
+// Open photo in full size
+function openPhotoModal(photoUrl) {
+    document.getElementById('photoImage').src = photoUrl;
+    new bootstrap.Modal(document.getElementById('photoModal')).show();
 }
 
 document.getElementById('editTaskForm').addEventListener('submit', function(e) {

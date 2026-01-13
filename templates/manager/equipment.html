@@ -1,4 +1,5 @@
 {% extends 'manager/base.html' %}
+{% load static %}
 
 {% block title %}მოწყობილობები{% endblock %}
 
@@ -122,6 +123,70 @@
         padding: 30px;
         text-align: center;
         color: #6c757d;
+    }
+    
+    /* Mobile Responsive */
+    @media (max-width: 768px) {
+        .category-card {
+            margin-bottom: 15px;
+        }
+        .equipment-item {
+            flex-wrap: wrap;
+            padding: 10px 15px;
+        }
+        .equipment-info {
+            width: 100%;
+            margin-bottom: 8px;
+        }
+        .equipment-details h6 {
+            font-size: 0.95rem;
+            word-break: break-word;
+        }
+        .equipment-details small {
+            font-size: 0.85rem;
+            white-space: normal;
+        }
+        .stats-row {
+            grid-template-columns: repeat(auto-fit, minmax(120px, 1fr));
+            gap: 10px;
+        }
+        .stat-box {
+            padding: 12px 15px;
+        }
+        .stat-box h3 {
+            font-size: 22px;
+        }
+        .btn-group {
+            width: 100%;
+        }
+        .btn-group .btn {
+            flex: 1;
+            font-size: 0.85rem;
+        }
+    }
+    
+    @media (max-width: 576px) {
+        .category-header {
+            padding: 12px 15px;
+        }
+        .category-header h5 {
+            font-size: 1rem;
+        }
+        .equipment-item {
+            flex-direction: column;
+            align-items: flex-start;
+        }
+        .equipment-icon {
+            width: 40px;
+            height: 40px;
+            font-size: 18px;
+        }
+        .equipment-details h6 {
+            font-size: 0.9rem;
+        }
+        .stats-row {
+            grid-template-columns: 1fr 1fr;
+        }
     }
 </style>
 {% endblock %}
@@ -263,6 +328,106 @@
         </div>
     </div>
     {% endif %}
+</div>
+
+<!-- Edit Equipment Modal -->
+<div class="modal fade" id="editModal" tabindex="-1">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+            <div class="modal-header bg-info text-white">
+                <h5 class="modal-title"><i class="bi bi-pencil-square me-2"></i>მოწყობილობის რედაქტირება</h5>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+            </div>
+            <form method="POST" id="editEquipmentForm">
+                {% csrf_token %}
+                <div class="modal-body">
+                    <div class="row mb-3">
+                        <div class="col-md-6">
+                            <label class="form-label">ობიექტი *</label>
+                            <select id="edit_site" name="site" class="form-select" required>
+                                <option value="">აირჩიე...</option>
+                                {% for site in sites %}
+                                <option value="{{ site.id }}">{{ site.company.name }} - {{ site.name }}</option>
+                                {% endfor %}
+                            </select>
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label">კატეგორია</label>
+                            <select id="edit_category" name="category" class="form-select">
+                                <option value="">აირჩიე...</option>
+                                {% for cat in categories %}
+                                <option value="{{ cat.id }}">{{ cat.name }}</option>
+                                {% endfor %}
+                            </select>
+                        </div>
+                    </div>
+                    <div class="row mb-3">
+                        <div class="col-md-8">
+                            <label class="form-label">სახელი *</label>
+                            <input type="text" id="edit_name" name="name" class="form-control" required>
+                        </div>
+                        <div class="col-md-4">
+                            <label class="form-label">მარკა</label>
+                            <input type="text" id="edit_brand" name="brand" class="form-control">
+                        </div>
+                    </div>
+                    <div class="row mb-3">
+                        <div class="col-md-4">
+                            <label class="form-label">მოდელი</label>
+                            <input type="text" id="edit_model" name="model_number" class="form-control">
+                        </div>
+                        <div class="col-md-4">
+                            <label class="form-label">სერიული ნომერი</label>
+                            <input type="text" id="edit_serial" name="serial_number" class="form-control">
+                        </div>
+                        <div class="col-md-4">
+                            <label class="form-label">სისტემის ტიპი</label>
+                            <select id="edit_type" name="system_type" class="form-select">
+                                <option value="heating_cooling">გათბობა/გაგრილება</option>
+                                <option value="ventilation">ვენტილაცია</option>
+                                <option value="water">წყალი</option>
+                                <option value="electrical">ელექტრო</option>
+                                <option value="other">სხვა</option>
+                            </select>
+                        </div>
+                    </div>
+                    <div class="row mb-3">
+                        <div class="col-md-6">
+                            <label class="form-label">სტატუსი</label>
+                            <select id="edit_status" name="status" class="form-select">
+                                <option value="active">აქტიური</option>
+                                <option value="maintenance">მომსახურებაში</option>
+                                <option value="broken">გაფუჭებული</option>
+                                <option value="inactive">არააქტიური</option>
+                            </select>
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label">ადგილი</label>
+                            <input type="text" id="edit_location" name="location_detail" class="form-control">
+                        </div>
+                    </div>
+                    <div class="row mb-3">
+                        <div class="col-md-6">
+                            <label class="form-label">ინსტალაციის თარიღი</label>
+                            <input type="date" id="edit_installation" name="installation_date" class="form-control">
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label">გარანტიის ვადა</label>
+                            <input type="date" id="edit_warranty" name="warranty_end" class="form-control">
+                        </div>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">შენიშვნები</label>
+                        <textarea id="edit_notes" name="notes" class="form-control" rows="3"></textarea>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">გაუქმება</button>
+                    <button type="submit" class="btn btn-primary">განახლება</button>
+                </div>
+            </form>
+        </div>
+    </div>
 </div>
 
 <!-- Add Equipment Modal -->
@@ -419,6 +584,7 @@
 {% endblock %}
 
 {% block extra_js %}
+<script src="{% static 'js/validation.js' %}"></script>
 <script>
 function filterCategory(categoryId) {
     document.querySelectorAll('.filter-pill').forEach(p => p.classList.remove('active'));
@@ -434,8 +600,106 @@ function filterCategory(categoryId) {
 }
 
 function editEquipment(id) {
-    // TODO: Implement edit modal
-    window.location.href = '/admin/companies/equipment/' + id + '/change/';
+    // Fetch equipment data
+    fetch('/api/equipment/' + id + '/', {
+        method: 'GET',
+        headers: {
+            'Content-Type': 'application/json',
+            'X-CSRFToken': document.querySelector('[name=csrfmiddlewaretoken]')?.value || ''
+        }
+    })
+    .then(r => r.json())
+    .then(data => {
+        // Populate edit form
+        document.getElementById('edit_site').value = data.site;
+        document.getElementById('edit_category').value = data.category || '';
+        document.getElementById('edit_name').value = data.name;
+        document.getElementById('edit_brand').value = data.brand || '';
+        document.getElementById('edit_model').value = data.model_number || '';
+        document.getElementById('edit_serial').value = data.serial_number || '';
+        document.getElementById('edit_type').value = data.system_type || 'heating_cooling';
+        document.getElementById('edit_status').value = data.status || 'active';
+        document.getElementById('edit_location').value = data.location_detail || '';
+        document.getElementById('edit_installation').value = data.installation_date ? data.installation_date.split('T')[0] : '';
+        document.getElementById('edit_warranty').value = data.warranty_end ? data.warranty_end.split('T')[0] : '';
+        document.getElementById('edit_notes').value = data.notes || '';
+        
+        // Set form action
+        document.getElementById('editEquipmentForm').action = '/equipment/' + id + '/edit/';
+        
+        // Show modal
+        new bootstrap.Modal(document.getElementById('editModal')).show();
+    })
+    .catch(err => {
+        alert('მოწყობილობის ჩატვირთვა ვერ მოხერხდა');
+    });
 }
+
+// Setup form validation
+document.addEventListener('DOMContentLoaded', function() {
+    // Setup add equipment form validation
+    const addForm = document.querySelector('#addModal form');
+    if (addForm) {
+        addForm.addEventListener('submit', function(e) {
+            if (!validateForm(this)) {
+                e.preventDefault();
+                e.stopPropagation();
+            }
+        });
+    }
+    
+    // Setup edit equipment form validation
+    const editForm = document.getElementById('editEquipmentForm');
+    if (editForm) {
+        editForm.addEventListener('submit', function(e) {
+            if (!validateForm(this)) {
+                e.preventDefault();
+                e.stopPropagation();
+            }
+        });
+    }
+    
+    // Setup category form validation
+    const categoryForm = document.querySelector('#categoryModal form');
+    if (categoryForm) {
+        categoryForm.addEventListener('submit', function(e) {
+            if (!validateForm(this)) {
+                e.preventDefault();
+                e.stopPropagation();
+            }
+        });
+    }
+});
+
+// Clear forms when modals close
+document.getElementById('addModal')?.addEventListener('hidden.bs.modal', function() {
+    const forms = document.querySelectorAll('#addModal form');
+    forms.forEach(form => {
+        form.reset();
+        form.classList.remove('was-validated');
+        form.querySelectorAll('.is-invalid').forEach(el => el.classList.remove('is-invalid'));
+        form.querySelectorAll('.invalid-feedback').forEach(el => el.remove());
+    });
+});
+
+document.getElementById('editModal')?.addEventListener('hidden.bs.modal', function() {
+    const forms = document.querySelectorAll('#editModal form');
+    forms.forEach(form => {
+        form.reset();
+        form.classList.remove('was-validated');
+        form.querySelectorAll('.is-invalid').forEach(el => el.classList.remove('is-invalid'));
+        form.querySelectorAll('.invalid-feedback').forEach(el => el.remove());
+    });
+});
+
+document.getElementById('categoryModal')?.addEventListener('hidden.bs.modal', function() {
+    const forms = document.querySelectorAll('#categoryModal form');
+    forms.forEach(form => {
+        form.reset();
+        form.classList.remove('was-validated');
+        form.querySelectorAll('.is-invalid').forEach(el => el.classList.remove('is-invalid'));
+        form.querySelectorAll('.invalid-feedback').forEach(el => el.remove());
+    });
+});
 </script>
 {% endblock %}

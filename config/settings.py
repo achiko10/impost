@@ -102,6 +102,13 @@ AUTH_USER_MODEL = "accounts.User"
 LOGIN_URL = "/login/"
 LOGIN_REDIRECT_URL = "/dashboard/"
 
+# Session configuration
+SESSION_COOKIE_AGE = 1800  # 30 minutes in seconds
+SESSION_COOKIE_HTTPONLY = True  # Prevent JavaScript from accessing session cookie
+SESSION_COOKIE_SAMESITE = 'Lax'  # Prevent cross-site cookie issues
+SESSION_EXPIRE_AT_BROWSER_CLOSE = True  # Expire session when browser closes
+SESSION_SAVE_EVERY_REQUEST = True  # Update session on each request
+
 REST_FRAMEWORK = {
     "DEFAULT_AUTHENTICATION_CLASSES": (
         "rest_framework_simplejwt.authentication.JWTAuthentication",

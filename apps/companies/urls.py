@@ -1,5 +1,9 @@
 from django.urls import path
+from rest_framework.routers import DefaultRouter
 from . import views
+
+# API Router
+router = DefaultRouter()
 
 urlpatterns = [
     # Manager Dashboard
@@ -20,10 +24,17 @@ urlpatterns = [
     path("manager/equipment/", views.equipment_list, name="equipment_list"),
     path("equipment/create/", views.create_equipment, name="equipment_create"),
     path(
+        "equipment/<int:equipment_id>/edit/",
+        views.edit_equipment,
+        name="equipment_edit",
+    ),
+    path(
         "equipment/<int:equipment_id>/delete/",
         views.delete_equipment,
         name="equipment_delete",
     ),
+    # API
+    path("api/equipment/<int:equipment_id>/", views.equipment_detail_api, name="equipment_detail_api"),
     # Equipment Categories
     path("category/create/", views.create_category, name="category_create"),
     # Schedules

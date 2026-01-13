@@ -12,17 +12,38 @@
                     <h5 class="text-muted">სამშენებლო & მეპ კომპანია</h5>
                 </div>
                 
-                <form method="POST">
+                {% if messages %}
+                    {% for message in messages %}
+                        <div class="alert alert-{{ message.tags }} alert-dismissible fade show" role="alert">
+                            {{ message }}
+                            <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+                        </div>
+                    {% endfor %}
+                {% endif %}
+                
+                <form method="POST" id="loginForm">
                     {% csrf_token %}
                     
                     <div class="mb-3">
                         <label class="form-label">მომხმარებელი</label>
-                        <input type="text" name="username" class="form-control" required>
+                        <input type="text" name="username" class="form-control" id="username" autocomplete="username" autocapitalize="off" required>
+                        <div class="invalid-feedback">გთხოვთ, შეიყვანეთ მომხმარებელი</div>
                     </div>
                     
                     <div class="mb-3">
                         <label class="form-label">პაროლი</label>
-                        <input type="password" name="password" class="form-control" required>
+                        <div class="input-group">
+                            <input type="password" name="password" class="form-control" id="password" autocomplete="current-password" required>
+                            <button class="btn btn-outline-secondary" type="button" id="togglePassword">
+                                <i class="bi bi-eye"></i>
+                            </button>
+                        </div>
+                        <div class="invalid-feedback">გთხოვთ, შეიყვანეთ პაროლი</div>
+                    </div>
+                    
+                    <div class="mb-3 form-check">
+                        <input type="checkbox" class="form-check-input" id="rememberMe" name="remember_me">
+                        <label class="form-check-label" for="rememberMe">დამიმახსოვრე</label>
                     </div>
                     
                     <button type="submit" class="btn btn-primary w-100">
@@ -33,4 +54,61 @@
         </div>
     </div>
 </div>
+
+<script>
+document.getElementById('togglePassword').addEventListener('click', function() {
+    const passwordInput = document.getElementById('password');
+    const icon = this.querySelector('i');
+    
+    if (passwordInput.type === 'password') {
+        passwordInput.type = 'text';
+        icon.classList.remove('bi-eye');
+        icon.classList.add('bi-eye-slash');
+    } else {
+        passwordInput.type = 'password';
+        icon.classList.remove('bi-eye-slash');
+        icon.classList.add('bi-eye');
+    }
+});
+
+document.getElementById('loginForm').addEventListener('submit', function(e) {
+    if (!this.checkValidity()) {
+        e.preventDefault();
+        e.stopPropagation();
+    }
+    this.classList.add('was-validated');
+    
+    // Save credentials if "Remember me" is checked
+    if (document.getElementById('rememberMe').checked) {
+        try {
+            localStorage.setItem('saved_username', document.getElementById('username').value);
+            localStorage.setItem('save_credentials', 'true');
+        } catch (e) {
+            console.log('localStorage not available');
+        }
+    } else {
+        try {
+            localStorage.removeItem('saved_username');
+            localStorage.removeItem('save_credentials');
+        } catch (e) {
+            console.log('localStorage not available');
+        }
+    }
+});
+
+// Load saved credentials on page load
+document.addEventListener('DOMContentLoaded', function() {
+    try {
+        if (localStorage.getItem('save_credentials') === 'true') {
+            const savedUsername = localStorage.getItem('saved_username');
+            if (savedUsername) {
+                document.getElementById('username').value = savedUsername;
+                document.getElementById('rememberMe').checked = true;
+            }
+        }
+    } catch (e) {
+        console.log('localStorage not available');
+    }
+});
+</script>
 {% endblock %}

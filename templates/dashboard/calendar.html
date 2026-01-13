@@ -202,7 +202,8 @@ document.addEventListener('DOMContentLoaded', function() {
         headerToolbar: { left: 'prev,next today', center: 'title', right: 'dayGridMonth,timeGridWeek,timeGridDay,listMonth' },
         views: { listMonth: { buttonText: 'სია' } },
         editable: true, selectable: true, selectMirror: true, dayMaxEvents: 3, navLinks: true, locale: 'ka',
-        buttonText: { today: 'დღეს', month: 'თვე', week: 'კვირა', day: 'დღე' },
+        buttonText: { today: 'დღეს', week: 'კვირა', day: 'დღე', month: 'თვე' },
+        eventDragStart: function() { showToast('გადატანა', 'გადაათრიე მოვლენა ან გაშავი თარიღის შესაცვლელად', 'info'); },
         height: 'auto',
         events: function(info, successCallback, failureCallback) {
             fetch('/calendar-events/').then(r => r.json()).then(events => {
