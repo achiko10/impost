@@ -245,8 +245,18 @@
     <div class="col-12 mb-4 category-section" data-category="{{ cat.id }}">
         <div class="category-card">
             <div class="category-header" style="background: {{ cat.color }};">
-                <h5><i class="{{ cat.icon }} me-2"></i>{{ cat.name }}</h5>
-                <span class="badge">{{ cat_equipment.count }} მოწყობილობა</span>
+                <div>
+                    <h5><i class="{{ cat.icon }} me-2"></i>{{ cat.name }}</h5>
+                </div>
+                <div class="d-flex align-items-center gap-2">
+                    <span class="badge">{{ cat_equipment.count }} მოწყობილობა</span>
+                    <a href="{% url 'category_delete' cat.id %}" 
+                       class="btn btn-sm btn-danger"
+                       onclick="return confirm('კატეგორია წაიშლება?')"
+                       title="წაშლა">
+                        <i class="bi bi-trash"></i>
+                    </a>
+                </div>
             </div>
             <div class="category-body bg-white">
                 {% for eq in cat_equipment %}

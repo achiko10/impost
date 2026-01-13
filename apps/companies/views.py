@@ -330,6 +330,20 @@ def create_category(request):
 
 
 @login_required
+def delete_category(request, category_id):
+    """კატეგორიის წაშლა"""
+    if request.user.role != "manager":
+        return redirect("dashboard")
+
+    category = get_object_or_404(EquipmentCategory, id=category_id)
+    category_name = category.name
+    category.delete()
+    messages.success(request, f'კატეგორია "{category_name}" წაშლილია!')
+    return redirect("equipment_list")
+
+
+
+@login_required
 def delete_equipment(request, equipment_id):
     if request.user.role != "manager":
         return redirect("dashboard")

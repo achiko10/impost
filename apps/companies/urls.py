@@ -37,6 +37,7 @@ urlpatterns = [
     path("api/equipment/<int:equipment_id>/", views.equipment_detail_api, name="equipment_detail_api"),
     # Equipment Categories
     path("category/create/", views.create_category, name="category_create"),
+    path("category/<int:category_id>/delete/", views.delete_category, name="category_delete"),
     # Schedules
     path("manager/schedules/", views.schedules_list, name="schedules_list"),
     path("schedules/create/", views.create_schedule, name="create_schedule"),
