@@ -279,6 +279,9 @@
                             {{ eq.get_status_display }}
                         </span>
                         <div class="btn-group btn-group-sm">
+                            <a href="/reports/equipment/{{ eq.id }}/" class="btn btn-outline-info" title="მომსახურების ისტორია">
+                                <i class="bi bi-clock-history"></i>
+                            </a>
                             <button class="btn btn-outline-primary" onclick="editEquipment({{ eq.id }})" title="რედაქტირება">
                                 <i class="bi bi-pencil"></i>
                             </button>
@@ -323,6 +326,9 @@
                     <div class="d-flex align-items-center gap-2">
                         <span class="badge bg-secondary">{{ eq.get_status_display }}</span>
                         <div class="btn-group btn-group-sm">
+                            <a href="/reports/equipment/{{ eq.id }}/" class="btn btn-outline-info" title="მომსახურების ისტორია">
+                                <i class="bi bi-clock-history"></i>
+                            </a>
                             <button class="btn btn-outline-primary" onclick="editEquipment({{ eq.id }})">
                                 <i class="bi bi-pencil"></i>
                             </button>
@@ -610,7 +616,6 @@ function filterCategory(categoryId) {
 }
 
 function editEquipment(id) {
-    // Fetch equipment data
     fetch('/api/equipment/' + id + '/', {
         method: 'GET',
         headers: {
@@ -620,7 +625,6 @@ function editEquipment(id) {
     })
     .then(r => r.json())
     .then(data => {
-        // Populate edit form
         document.getElementById('edit_site').value = data.site;
         document.getElementById('edit_category').value = data.category || '';
         document.getElementById('edit_name').value = data.name;
@@ -634,10 +638,8 @@ function editEquipment(id) {
         document.getElementById('edit_warranty').value = data.warranty_end ? data.warranty_end.split('T')[0] : '';
         document.getElementById('edit_notes').value = data.notes || '';
         
-        // Set form action
         document.getElementById('editEquipmentForm').action = '/equipment/' + id + '/edit/';
         
-        // Show modal
         new bootstrap.Modal(document.getElementById('editModal')).show();
     })
     .catch(err => {
@@ -645,9 +647,7 @@ function editEquipment(id) {
     });
 }
 
-// Setup form validation
 document.addEventListener('DOMContentLoaded', function() {
-    // Setup add equipment form validation
     const addForm = document.querySelector('#addModal form');
     if (addForm) {
         addForm.addEventListener('submit', function(e) {
@@ -658,7 +658,6 @@ document.addEventListener('DOMContentLoaded', function() {
         });
     }
     
-    // Setup edit equipment form validation
     const editForm = document.getElementById('editEquipmentForm');
     if (editForm) {
         editForm.addEventListener('submit', function(e) {
@@ -669,7 +668,6 @@ document.addEventListener('DOMContentLoaded', function() {
         });
     }
     
-    // Setup category form validation
     const categoryForm = document.querySelector('#categoryModal form');
     if (categoryForm) {
         categoryForm.addEventListener('submit', function(e) {
@@ -681,7 +679,6 @@ document.addEventListener('DOMContentLoaded', function() {
     }
 });
 
-// Clear forms when modals close
 document.getElementById('addModal')?.addEventListener('hidden.bs.modal', function() {
     const forms = document.querySelectorAll('#addModal form');
     forms.forEach(form => {

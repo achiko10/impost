@@ -4,7 +4,7 @@
 {% block title %}კომპანიები{% endblock %}
 
 {% block content %}
-<div class="d-flex justify-content-between mb-4">
+<div class="d-flex justify-content-between align-items-center mb-4">
     <h2><i class="bi bi-building"></i> კომპანიები</h2>
     <button class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#addModal">
         <i class="bi bi-plus-circle"></i> დამატება
@@ -12,38 +12,54 @@
 </div>
 
 <!-- Table -->
-<div class="card">
+<div class="card shadow-sm">
     <div class="card-body">
-        <table class="table">
-            <thead>
-                <tr>
-                    <th>ID</th>
-                    <th>სახელი</th>
-                    <th>შექმნის თარიღი</th>
-                    <th>მოქმედებები</th>
-                </tr>
-            </thead>
-            <tbody>
-                {% for company in companies %}
-                <tr>
-                    <td>{{ company.id }}</td>
-                    <td><strong>{{ company.name }}</strong></td>
-                    <td>{{ company.created_at|date:"d M Y" }}</td>
-                    <td>
-                        <a href="/companies/{{ company.id }}/delete/" 
-                           class="btn btn-sm btn-danger"
-                           onclick="return confirm('წაშლა დარწმუნებული ხარ?')">
-                            <i class="bi bi-trash"></i>
-                        </a>
-                    </td>
-                </tr>
-                {% empty %}
-                <tr>
-                    <td colspan="4" class="text-center text-muted">კომპანიები არ არის</td>
-                </tr>
-                {% endfor %}
-            </tbody>
-        </table>
+        <div class="table-responsive">
+            <table class="table table-hover align-middle mb-0">
+                <thead class="table-light">
+                    <tr>
+                        <th>ID</th>
+                        <th>სახელი</th>
+                        <th>ობიექტები</th>
+                        <th>დანადგარები</th>
+                        <th>შექმნის თარიღი</th>
+                        <th class="text-end">მოქმედებები</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for company in companies %}
+                    <tr>
+                        <td>{{ company.id }}</td>
+                        <td><strong>{{ company.name }}</strong></td>
+                        <td><span class="badge bg-info text-dark">{{ company.sites_count|default:company.sites.count }}</span></td>
+                        <td><span class="badge bg-secondary">{{ company.equipment_count|default:0 }}</span></td>
+                        <td>{{ company.created_at|date:"d M Y" }}</td>
+                        <td class="text-end">
+                            <a href="/reports/pdf/{{ company.id }}/"
+                               class="btn btn-sm btn-outline-secondary me-1"
+                               title="PDF რეპორტი">
+                                <i class="bi bi-file-earmark-pdf"></i>
+                            </a>
+                            <button type="button"
+                                    class="btn btn-sm btn-outline-primary me-1"
+                                    onclick="openEditCompanyModal({{ company.id }}, '{{ company.name|escapejs }}')">
+                                <i class="bi bi-pencil"></i>
+                            </button>
+                            <a href="/companies/{{ company.id }}/delete/" 
+                               class="btn btn-sm btn-danger"
+                               onclick="return confirm('დარწმუნებული ხართ, რომ გსურთ კომპანიის წაშლა?')">
+                                <i class="bi bi-trash"></i>
+                            </a>
+                        </td>
+                    </tr>
+                    {% empty %}
+                    <tr>
+                        <td colspan="6" class="text-center text-muted py-4">კომპანიები არ არის</td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
     </div>
 </div>
 
@@ -59,8 +75,34 @@
                 {% csrf_token %}
                 <div class="modal-body">
                     <div class="mb-3">
-                        <label class="form-label">სახელი</label>
+                        <label class="form-label">სახელი *</label>
                         <input type="text" name="name" class="form-control" required>
+                        <div class="invalid-feedback">გთხოვთ, შეიყვანეთ კომპანიის სახელი</div>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">გაუქმება</button>
+                    <button type="submit" class="btn btn-primary">შენახვა</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<!-- Edit Modal -->
+<div class="modal fade" id="editModal" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">კომპანიის რედაქტირება</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <form method="POST" id="editCompanyForm">
+                {% csrf_token %}
+                <div class="modal-body">
+                    <div class="mb-3">
+                        <label class="form-label">სახელი *</label>
+                        <input type="text" name="name" id="editCompanyName" class="form-control" required>
                         <div class="invalid-feedback">გთხოვთ, შეიყვანეთ კომპანიის სახელი</div>
                     </div>
                 </div>
@@ -77,30 +119,30 @@
 {% block extra_js %}
 <script src="{% static 'js/validation.js' %}"></script>
 <script>
-// Setup form validation
+function openEditCompanyModal(id, name) {
+    document.getElementById('editCompanyForm').action = `/companies/${id}/edit/`;
+    document.getElementById('editCompanyName').value = name;
+    new bootstrap.Modal(document.getElementById('editModal')).show();
+}
+
 document.addEventListener('DOMContentLoaded', function() {
-    const form = document.querySelector('.company-form');
-    if (form) {
+    document.querySelectorAll('#addModal form, #editModal form').forEach(form => {
         form.addEventListener('submit', function(e) {
             if (!validateForm(this)) {
                 e.preventDefault();
                 e.stopPropagation();
             }
         });
-    }
+    });
 });
 
-// Clear form when modal closes
 document.getElementById('addModal')?.addEventListener('hidden.bs.modal', function() {
     const forms = document.querySelectorAll('#addModal form');
     forms.forEach(form => {
         form.reset();
         form.classList.remove('was-validated');
         form.querySelectorAll('.is-invalid').forEach(el => el.classList.remove('is-invalid'));
-        form.querySelectorAll('.invalid-feedback').forEach(el => el.remove());
     });
 });
 </script>
 {% endblock %}
-
-{% load static %}

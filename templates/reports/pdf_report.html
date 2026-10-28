@@ -1,58 +1,80 @@
 <!DOCTYPE html>
-<html>
+<html lang="ka">
 <head>
     <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{{ company.name }} - ტექნიკური მომსახურების რეპორტი</title>
+    {% if not pdf_mode %}
+    <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+Georgian:wght@400;600;700&display=swap" rel="stylesheet">
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.0/font/bootstrap-icons.css">
+    {% endif %}
     <style>
         @page {
             size: A4;
-            margin: 2cm;
+            margin: 1.5cm;
+        }
+        * {
+            font-family: GeorgianFont, 'Noto Sans Georgian', 'Sylfaen', Arial, sans-serif;
         }
         body {
-            font-family: DejaVu Sans, Arial, sans-serif;
+            background: #f5f5f5;
             font-size: 10pt;
             line-height: 1.4;
+            color: #212529;
+        }
+        .document {
+            background: white;
+            max-width: 900px;
+            margin: 80px auto 30px auto;
+            padding: 40px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+            border-radius: 8px;
         }
         h1 {
             color: #0d6efd;
             border-bottom: 3px solid #0d6efd;
             padding-bottom: 10px;
-            margin-bottom: 20px;
+            margin-bottom: 10px;
+            font-weight: bold;
         }
         h2 {
             color: #198754;
             margin-top: 25px;
             border-bottom: 2px solid #198754;
             padding-bottom: 5px;
+            font-size: 14pt;
+            font-weight: bold;
         }
-        table {
+        table.report-table {
             width: 100%;
             border-collapse: collapse;
             margin: 15px 0;
-            font-size: 9pt;
+            font-size: 9.5pt;
         }
-        th, td {
-            border: 1px solid #ddd;
-            padding: 6px;
+        table.report-table th, table.report-table td {
+            border: 1px solid #dee2e6;
+            padding: 8px;
             text-align: left;
         }
-        th {
+        table.report-table th {
             background-color: #0d6efd;
             color: white;
         }
-        tr:nth-child(even) {
+        table.report-table tr:nth-child(even) {
             background-color: #f8f9fa;
         }
-        .status-pending { color: #856404; background-color: #fff3cd; }
-        .status-in_progress { color: #0c5460; background-color: #d1ecf1; }
-        .status-completed { color: #155724; background-color: #d4edda; }
-        .status-approved { color: #004085; background-color: #cce5ff; }
-        .status-rejected { color: #721c24; background-color: #f8d7da; }
+        .status-pending { color: #856404; background-color: #fff3cd; font-weight: bold; }
+        .status-in_progress { color: #0c5460; background-color: #d1ecf1; font-weight: bold; }
+        .status-completed { color: #155724; background-color: #d4edda; font-weight: bold; }
+        .status-approved { color: #004085; background-color: #cce5ff; font-weight: bold; }
+        .status-rejected { color: #721c24; background-color: #f8d7da; font-weight: bold; }
         .stats-box {
             background: #f8f9fa;
             border: 1px solid #dee2e6;
             padding: 15px;
             margin: 20px 0;
-            border-radius: 5px;
+            border-radius: 6px;
         }
         .stats-box .stat {
             display: inline-block;
@@ -65,109 +87,117 @@
         }
         .header {
             text-align: center;
-            margin-bottom: 30px;
+            margin-bottom: 25px;
         }
         .footer {
             margin-top: 40px;
             padding-top: 15px;
             border-top: 1px solid #ccc;
-            font-size: 8pt;
+            font-size: 8.5pt;
             color: #666;
             text-align: center;
+        }
+        .action-bar {
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            background: #212529;
+            padding: 12px 20px;
+            text-align: center;
+            z-index: 1000;
+        }
+        @media print {
+            .no-print { display: none !important; }
+            body { background: white; }
+            .document {
+                box-shadow: none;
+                margin: 0;
+                padding: 10px;
+                max-width: 100%;
+            }
         }
     </style>
 </head>
 <body>
-    <div class="header">
-        <h1>{{ company.name }}</h1>
-        <p>ტექნიკური მომსახურების რეპორტი</p>
-        <p>გენერირებული: {{ generated_at|date:"d.m.Y H:i" }}</p>
+    {% if not pdf_mode %}
+    <div class="action-bar no-print">
+        <a href="/manager/companies/" class="btn btn-outline-light btn-sm me-2">
+            <i class="bi bi-arrow-left"></i> უკან
+        </a>
+        <button onclick="window.print()" class="btn btn-primary btn-sm me-2">
+            <i class="bi bi-printer"></i> დაბეჭდვა / PDF შენახვა
+        </button>
+        <a href="?download=pdf" class="btn btn-danger btn-sm">
+            <i class="bi bi-file-earmark-pdf"></i> PDF ფაილის ჩამოტვირთვა
+        </a>
     </div>
+    {% endif %}
 
-    <div class="stats-box">
-        <div class="stat">
-            <div class="stat-value">{{ stats.total }}</div>
-            <div>სულ ტასკი</div>
+    <div class="document">
+        <div class="header">
+            <h1>{{ company.name }}</h1>
+            <p class="mb-1 text-muted">ტექნიკური მომსახურების შემაჯამებელი რეპორტი</p>
+            <small class="text-muted">გენერირებული: {{ generated_at|date:"d.m.Y H:i" }}</small>
         </div>
-        <div class="stat">
-            <div class="stat-value" style="color: #ffc107;">{{ stats.pending }}</div>
-            <div>მოლოდინში</div>
-        </div>
-        <div class="stat">
-            <div class="stat-value" style="color: #17a2b8;">{{ stats.in_progress }}</div>
-            <div>მიმდინარე</div>
-        </div>
-        <div class="stat">
-            <div class="stat-value" style="color: #28a745;">{{ stats.completed }}</div>
-            <div>დასრულებული</div>
-        </div>
-        <div class="stat">
-            <div class="stat-value" style="color: #007bff;">{{ stats.approved }}</div>
-            <div>დამტკიცებული</div>
-        </div>
-    </div>
 
-    <h2>დავალებების დეტალები</h2>
-    
-    <table>
-        <thead>
-            <tr>
-                <th>ობიექტი</th>
-                <th>დანადგარი</th>
-                <th>შემოწმება</th>
-                <th>ინსპექტორი</th>
-                <th>თარიღი</th>
-                <th>სტატუსი</th>
-            </tr>
-        </thead>
-        <tbody>
-            {% for task in tasks %}
-            <tr>
-                <td>{{ task.schedule.equipment.site.name }}</td>
-                <td>{{ task.schedule.equipment.name }}</td>
-                <td>{{ task.schedule.task_name }}</td>
-                <td>{{ task.assigned_to.username|default:"-" }}</td>
-                <td>{{ task.scheduled_date|date:"d.m.Y" }}</td>
-                <td class="status-{{ task.status }}">{{ task.get_status_display }}</td>
-            </tr>
-            {% empty %}
-            <tr>
-                <td colspan="6" style="text-align: center;">დავალებები არ არის</td>
-            </tr>
-            {% endfor %}
-        </tbody>
-    </table>
+        <div class="stats-box">
+            <div class="stat">
+                <div class="stat-value">{{ stats.total }}</div>
+                <div>სულ ტასკი</div>
+            </div>
+            <div class="stat">
+                <div class="stat-value" style="color: #ffc107;">{{ stats.pending }}</div>
+                <div>მოლოდინში</div>
+            </div>
+            <div class="stat">
+                <div class="stat-value" style="color: #17a2b8;">{{ stats.in_progress }}</div>
+                <div>მიმდინარე</div>
+            </div>
+            <div class="stat">
+                <div class="stat-value" style="color: #28a745;">{{ stats.completed }}</div>
+                <div>დასრულებული</div>
+            </div>
+            <div class="stat">
+                <div class="stat-value" style="color: #007bff;">{{ stats.approved }}</div>
+                <div>დამტკიცებული</div>
+            </div>
+        </div>
 
-    <div class="footer">
-        <p>Maintenance Management System | {{ generated_at|date:"Y" }}</p>
-    </div>
-</body>
-</html>
-                    <td>{{ task.scheduled_date|date:"d M Y" }}</td>
-                    <td>{{ task.assigned_to.get_full_name|default:task.assigned_to.username }}</td>
-                    <td>{{ task.get_status_display }}</td>
-                </tr>
-                {% if task.report %}
+        <h2>დავალებების დეტალები</h2>
+
+        <table class="report-table">
+            <thead>
                 <tr>
-                    <td colspan="5">
-                        <strong>კომენტარი:</strong> {{ task.report.comment }}
-                        <br>
-                        {% for photo in task.report.photos.all %}
-                        <img src="{{ photo.image.path }}" class="photo" alt="Photo">
-                        {% endfor %}
-                    </td>
+                    <th>ობიექტი</th>
+                    <th>დანადგარი</th>
+                    <th>შემოწმება</th>
+                    <th>ინსპექტორი</th>
+                    <th>თარიღი</th>
+                    <th>სტატუსი</th>
                 </tr>
-                {% endif %}
+            </thead>
+            <tbody>
+                {% for task in tasks %}
+                <tr>
+                    <td>{{ task.schedule.equipment.site.name }}</td>
+                    <td>{{ task.schedule.equipment.name }}</td>
+                    <td>{{ task.schedule.task_name }}</td>
+                    <td>{{ task.assigned_to.get_full_name|default:task.assigned_to.username|default:"-" }}</td>
+                    <td>{{ task.scheduled_date|date:"d.m.Y" }}</td>
+                    <td class="status-{{ task.status }}">{{ task.get_status_display }}</td>
+                </tr>
+                {% empty %}
+                <tr>
+                    <td colspan="6" style="text-align: center;">დავალებები არ არის</td>
+                </tr>
                 {% endfor %}
-            {% endfor %}
-        </tbody>
-    </table>
-    {% endfor %}
-    {% endfor %}
+            </tbody>
+        </table>
 
-    <div class="footer">
-        <p>რეპორტი გენერირებული: {{ current_date }}</p>
-        <p>Maintenance Management System</p>
+        <div class="footer">
+            <p class="mb-0">IMPOSTI Maintenance Management System | {{ generated_at|date:"Y" }}</p>
+        </div>
     </div>
 </body>
 </html>

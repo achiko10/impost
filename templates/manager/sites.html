@@ -4,47 +4,56 @@
 {% block title %}ობიექტები{% endblock %}
 
 {% block content %}
-<div class="d-flex justify-content-between mb-4">
+<div class="d-flex justify-content-between align-items-center mb-4">
     <h2><i class="bi bi-geo-alt-fill"></i> ობიექტები</h2>
     <button class="btn btn-success" data-bs-toggle="modal" data-bs-target="#addModal">
         <i class="bi bi-plus-circle"></i> დამატება
     </button>
 </div>
 
-<div class="card">
+<div class="card shadow-sm">
     <div class="card-body">
-        <table class="table table-hover">
-            <thead>
-                <tr>
-                    <th>ID</th>
-                    <th>კომპანია</th>
-                    <th>ობიექტი</th>
-                    <th>მისამართი</th>
-                    <th>მოქმედებები</th>
-                </tr>
-            </thead>
-            <tbody>
-                {% for site in sites %}
-                <tr>
-                    <td>{{ site.id }}</td>
-                    <td>{{ site.company.name }}</td>
-                    <td><strong>{{ site.name }}</strong></td>
-                    <td>{{ site.address }}</td>
-                    <td>
-                        <a href="/sites/{{ site.id }}/delete/" 
-                           class="btn btn-sm btn-danger"
-                           onclick="return confirm('წაშლა დარწმუნებული ხარ?')">
-                            <i class="bi bi-trash"></i>
-                        </a>
-                    </td>
-                </tr>
-                {% empty %}
-                <tr>
-                    <td colspan="5" class="text-center text-muted">ობიექტები არ არის</td>
-                </tr>
-                {% endfor %}
-            </tbody>
-        </table>
+        <div class="table-responsive">
+            <table class="table table-hover align-middle mb-0">
+                <thead class="table-light">
+                    <tr>
+                        <th>ID</th>
+                        <th>კომპანია</th>
+                        <th>ობიექტი</th>
+                        <th>მისამართი</th>
+                        <th>დანადგარები</th>
+                        <th class="text-end">მოქმედებები</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for site in sites %}
+                    <tr>
+                        <td>{{ site.id }}</td>
+                        <td>{{ site.company.name }}</td>
+                        <td><strong>{{ site.name }}</strong></td>
+                        <td>{{ site.address }}</td>
+                        <td><span class="badge bg-secondary">{{ site.equipment_count|default:site.equipment.count }}</span></td>
+                        <td class="text-end">
+                            <button type="button"
+                                    class="btn btn-sm btn-outline-primary me-1"
+                                    onclick="openEditSiteModal({{ site.id }}, {{ site.company_id }}, '{{ site.name|escapejs }}', '{{ site.address|escapejs }}')">
+                                <i class="bi bi-pencil"></i>
+                            </button>
+                            <a href="/sites/{{ site.id }}/delete/" 
+                               class="btn btn-sm btn-danger"
+                               onclick="return confirm('დარწმუნებული ხართ, რომ გსურთ ობიექტის წაშლა?')">
+                                <i class="bi bi-trash"></i>
+                            </a>
+                        </td>
+                    </tr>
+                    {% empty %}
+                    <tr>
+                        <td colspan="6" class="text-center text-muted py-4">ობიექტები არ არის</td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
     </div>
 </div>
 
@@ -88,32 +97,74 @@
         </div>
     </div>
 </div>
+
+<!-- Edit Modal -->
+<div class="modal fade" id="editModal" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">ობიექტის რედაქტირება</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <form method="POST" id="editSiteForm">
+                {% csrf_token %}
+                <div class="modal-body">
+                    <div class="mb-3">
+                        <label class="form-label">კომპანია *</label>
+                        <select name="company" id="editSiteCompany" class="form-select" required>
+                            <option value="">აირჩიე...</option>
+                            {% for company in companies %}
+                            <option value="{{ company.id }}">{{ company.name }}</option>
+                            {% endfor %}
+                        </select>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">ობიექტის სახელი *</label>
+                        <input type="text" name="name" id="editSiteName" class="form-control" required>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">მისამართი *</label>
+                        <textarea name="address" id="editSiteAddress" class="form-control" rows="2" required></textarea>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">გაუქმება</button>
+                    <button type="submit" class="btn btn-primary">შენახვა</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
 {% endblock %}
 
 {% block extra_js %}
 <script src="{% static 'js/validation.js' %}"></script>
 <script>
-// Setup form validation
+function openEditSiteModal(id, companyId, name, address) {
+    document.getElementById('editSiteForm').action = `/sites/${id}/edit/`;
+    document.getElementById('editSiteCompany').value = companyId;
+    document.getElementById('editSiteName').value = name;
+    document.getElementById('editSiteAddress').value = address;
+    new bootstrap.Modal(document.getElementById('editModal')).show();
+}
+
 document.addEventListener('DOMContentLoaded', function() {
-    const form = document.querySelector('#addModal form');
-    if (form) {
+    document.querySelectorAll('#addModal form, #editModal form').forEach(form => {
         form.addEventListener('submit', function(e) {
             if (!validateForm(this)) {
                 e.preventDefault();
                 e.stopPropagation();
             }
         });
-    }
+    });
 });
 
-// Clear form when modal closes
 document.getElementById('addModal')?.addEventListener('hidden.bs.modal', function() {
     const forms = document.querySelectorAll('#addModal form');
     forms.forEach(form => {
         form.reset();
         form.classList.remove('was-validated');
         form.querySelectorAll('.is-invalid').forEach(el => el.classList.remove('is-invalid'));
-        form.querySelectorAll('.invalid-feedback').forEach(el => el.remove());
     });
 });
 </script>

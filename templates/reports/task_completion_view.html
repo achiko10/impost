@@ -160,8 +160,11 @@
             <i class="bi bi-arrow-left"></i> უკან
         </a>
         <button onclick="window.print()" class="btn btn-primary me-2">
-            <i class="bi bi-printer"></i> PDF დაბეჭდვა
+            <i class="bi bi-printer"></i> დაბეჭდვა / PDF შენახვა
         </button>
+        <a href="?download=pdf" class="btn btn-danger me-2">
+            <i class="bi bi-file-earmark-pdf"></i> PDF ფაილის ჩამოტვირთვა
+        </a>
         {% if task.status == 'approved' %}
         <button onclick="showEmailModal()" class="btn btn-success">
             <i class="bi bi-envelope"></i> Email გაგზავნა
@@ -318,7 +321,7 @@
 
         <hr class="mt-5">
         <div class="text-center text-muted small">
-            გენერირებული: {{ generated_at|date:"d.m.Y H:i" }} | Maintenance Management System
+            გენერირებული: {{ generated_at|date:"d.m.Y H:i" }} | IMPOSTI Maintenance Management System
         </div>
     </div>
 

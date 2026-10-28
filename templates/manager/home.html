@@ -259,6 +259,9 @@
                     <a href="/manager/schedules/" class="btn btn-outline-secondary">
                         <i class="bi bi-calendar-range"></i> გრაფიკების მართვა
                     </a>
+                    <a href="/reports/monthly/" class="btn btn-outline-dark">
+                        <i class="bi bi-bar-chart-line"></i> თვიური რეპორტი
+                    </a>
                     <button class="btn btn-success" onclick="generateTasks()">
                         <i class="bi bi-plus-circle"></i> ტასკების გენერაცია
                     </button>
@@ -376,12 +379,6 @@ new Chart(monthlyCtx, {
         responsive: true,
         maintainAspectRatio: true,
         plugins: {
-            legend: {
-                labels: { 
-                    font: { size: window.innerWidth <= 768 ? 10 : 12 } 
-                }
-            }
-        },
             legend: { display: false }
         },
         scales: {

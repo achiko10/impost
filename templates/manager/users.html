@@ -1,0 +1,282 @@
+{% extends 'manager/base.html' %}
+
+{% block title %}მომხმარებლების მართვა - IMPOSTI{% endblock %}
+
+{% block content %}
+<div class="d-flex justify-content-between align-items-center mb-4">
+    <h2><i class="bi bi-people"></i> მომხმარებლების მართვა</h2>
+    <button class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#addUserModal">
+        <i class="bi bi-person-plus"></i> ახალი მომხმარებელი
+    </button>
+</div>
+
+<div class="card shadow mb-4">
+    <div class="card-header bg-white">
+        <h6 class="mb-0 text-primary fw-bold"><i class="bi bi-list"></i> თანამშრომლები და კლიენტები</h6>
+    </div>
+    <div class="card-body p-0">
+        {% if users_list %}
+        <div class="table-responsive">
+            <table class="table table-hover align-middle mb-0">
+                <thead class="table-light">
+                    <tr>
+                        <th>მომხმარებლის სახელი</th>
+                        <th>სახელი / გვარი</th>
+                        <th>როლი</th>
+                        <th>მიბმული კომპანია</th>
+                        <th>ტელეფონი</th>
+                        <th class="text-end">მოქმედება</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for u in users_list %}
+                    <tr>
+                        <td><strong>{{ u.username }}</strong></td>
+                        <td>{{ u.first_name }} {{ u.last_name }}</td>
+                        <td>
+                            {% if u.role == 'inspector' %}
+                                <span class="badge bg-info text-dark"><i class="bi bi-shield-check"></i> ინსპექტორი</span>
+                            {% elif u.role == 'client' %}
+                                <span class="badge bg-secondary"><i class="bi bi-person-workspace"></i> კლიენტი (მფლობელი)</span>
+                            {% else %}
+                                <span class="badge bg-dark">{{ u.role }}</span>
+                            {% endif %}
+                        </td>
+                        <td>
+                            {% if u.company %}
+                                <span class="text-primary fw-bold"><i class="bi bi-building"></i> {{ u.company.name }}</span>
+                            {% else %}
+                                <span class="text-muted">-</span>
+                            {% endif %}
+                        </td>
+                        <td>{{ u.phone|default:"-" }}</td>
+                        <td class="text-end">
+                            <button type="button"
+                                    class="btn btn-outline-primary btn-sm me-1"
+                                    onclick="openEditUserModal({{ u.id }}, '{{ u.username|escapejs }}', '{{ u.role|escapejs }}', '{{ u.company_id|default:"" }}', '{{ u.first_name|escapejs }}', '{{ u.last_name|escapejs }}', '{{ u.phone|escapejs }}')">
+                                <i class="bi bi-pencil"></i> რედაქტირება
+                            </button>
+                            <a href="{% url 'delete_tenant_user' u.id %}" class="btn btn-outline-danger btn-sm" onclick="return confirm('ნამდვილად გსურთ მომხმარებლის წაშლა?')">
+                                <i class="bi bi-trash"></i> წაშლა
+                            </a>
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+        {% else %}
+        <div class="text-center py-5 text-muted">
+            <i class="bi bi-people fs-1 d-block mb-3"></i>
+            მომხმარებლები ჯერ არ არის დამატებული.
+        </div>
+        {% endif %}
+    </div>
+</div>
+
+<!-- Add User Modal -->
+<div class="modal fade" id="addUserModal" tabindex="-1" aria-labelledby="addUserModalLabel" aria-hidden="true">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <form method="POST" action="{% url 'create_tenant_user' %}" class="needs-validation" novalidate>
+                {% csrf_token %}
+                <div class="modal-header">
+                    <h5 class="modal-title" id="addUserModalLabel"><i class="bi bi-person-plus"></i> ახალი მომხმარებელი</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body">
+                    <div class="mb-3">
+                        <label class="form-label">მომხმარებლის სახელი (Username) *</label>
+                        <input type="text" name="username" class="form-control" required autocapitalize="off">
+                        <div class="invalid-feedback">გთხოვთ შეიყვანოთ მომხმარებლის სახელი</div>
+                    </div>
+                    
+                    <div class="mb-3">
+                        <label class="form-label">პაროლი *</label>
+                        <input type="password" name="password" class="form-control" required minlength="6">
+                        <div class="invalid-feedback">პაროლი უნდა იყოს მინიმუმ 6 სიმბოლო</div>
+                    </div>
+
+                    <div class="mb-3">
+                        <label class="form-label">როლი *</label>
+                        <select name="role" id="userRoleSelect" class="form-select" required>
+                            <option value="" disabled selected>აირჩიეთ როლი</option>
+                            <option value="inspector">ინსპექტორი (ტექნიკოსი)</option>
+                            <option value="client">კლიენტი (კომპანიის მფლობელი)</option>
+                        </select>
+                        <div class="invalid-feedback">გთხოვთ აირჩიოთ როლი</div>
+                    </div>
+
+                    <!-- Client Specific: Company Select -->
+                    <div class="mb-3 d-none" id="companySelectContainer">
+                        <label class="form-label">მიაკუთვნეთ კლიენტ კომპანიას *</label>
+                        <select name="company" id="companySelectInput" class="form-select">
+                            <option value="" disabled selected>აირჩიეთ კომპანია</option>
+                            {% for c in companies %}
+                                <option value="{{ c.id }}">{{ c.name }}</option>
+                            {% endfor %}
+                        </select>
+                        <div class="invalid-feedback">კლიენტისთვის კომპანიის მითითება სავალდებულოა</div>
+                    </div>
+
+                    <hr class="my-4">
+
+                    <div class="row">
+                        <div class="col-md-6 mb-3">
+                            <label class="form-label">სახელი</label>
+                            <input type="text" name="first_name" class="form-control">
+                        </div>
+                        <div class="col-md-6 mb-3">
+                            <label class="form-label">გვარი</label>
+                            <input type="text" name="last_name" class="form-control">
+                        </div>
+                    </div>
+
+                    <div class="mb-3">
+                        <label class="form-label">ტელეფონის ნომერი</label>
+                        <input type="text" name="phone" class="form-control" placeholder="მაგ: 599 12 34 56">
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">დახურვა</button>
+                    <button type="submit" class="btn btn-primary">დამატება</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<!-- Edit User Modal -->
+<div class="modal fade" id="editUserModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <form method="POST" id="editUserForm" class="needs-validation" novalidate>
+                {% csrf_token %}
+                <div class="modal-header">
+                    <h5 class="modal-title"><i class="bi bi-pencil-square"></i> მომხმარებლის რედაქტირება</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body">
+                    <div class="mb-3">
+                        <label class="form-label">მომხმარებლის სახელი (Username) *</label>
+                        <input type="text" name="username" id="editUsername" class="form-control" required autocapitalize="off">
+                    </div>
+
+                    <div class="mb-3">
+                        <label class="form-label">ახალი პაროლი (დატოვეთ ცარიელი თუ არ ცვლით)</label>
+                        <input type="password" name="password" id="editPassword" class="form-control" minlength="6" placeholder="••••••">
+                    </div>
+
+                    <div class="mb-3">
+                        <label class="form-label">როლი *</label>
+                        <select name="role" id="editUserRoleSelect" class="form-select" required>
+                            <option value="inspector">ინსპექტორი (ტექნიკოსი)</option>
+                            <option value="client">კლიენტი (კომპანიის მფლობელი)</option>
+                        </select>
+                    </div>
+
+                    <div class="mb-3 d-none" id="editCompanySelectContainer">
+                        <label class="form-label">მიაკუთვნეთ კლიენტ კომპანიას *</label>
+                        <select name="company" id="editCompanySelectInput" class="form-select">
+                            <option value="">აირჩიეთ კომპანია</option>
+                            {% for c in companies %}
+                                <option value="{{ c.id }}">{{ c.name }}</option>
+                            {% endfor %}
+                        </select>
+                    </div>
+
+                    <hr class="my-3">
+
+                    <div class="row">
+                        <div class="col-md-6 mb-3">
+                            <label class="form-label">სახელი</label>
+                            <input type="text" name="first_name" id="editFirstName" class="form-control">
+                        </div>
+                        <div class="col-md-6 mb-3">
+                            <label class="form-label">გვარი</label>
+                            <input type="text" name="last_name" id="editLastName" class="form-control">
+                        </div>
+                    </div>
+
+                    <div class="mb-3">
+                        <label class="form-label">ტელეფონის ნომერი</label>
+                        <input type="text" name="phone" id="editPhone" class="form-control">
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">გაუქმება</button>
+                    <button type="submit" class="btn btn-primary">შენახვა</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<script>
+document.getElementById('userRoleSelect').addEventListener('change', function() {
+    const container = document.getElementById('companySelectContainer');
+    const select = document.getElementById('companySelectInput');
+    
+    if (this.value === 'client') {
+        container.classList.remove('d-none');
+        select.setAttribute('required', 'required');
+    } else {
+        container.classList.add('d-none');
+        select.removeAttribute('required');
+    }
+});
+
+document.getElementById('editUserRoleSelect').addEventListener('change', function() {
+    const container = document.getElementById('editCompanySelectContainer');
+    const select = document.getElementById('editCompanySelectInput');
+    
+    if (this.value === 'client') {
+        container.classList.remove('d-none');
+        select.setAttribute('required', 'required');
+    } else {
+        container.classList.add('d-none');
+        select.removeAttribute('required');
+    }
+});
+
+function openEditUserModal(id, username, role, companyId, firstName, lastName, phone) {
+    document.getElementById('editUserForm').action = `/manager/users/edit/${id}/`;
+    document.getElementById('editUsername').value = username;
+    document.getElementById('editPassword').value = '';
+    document.getElementById('editUserRoleSelect').value = role;
+    document.getElementById('editFirstName').value = firstName;
+    document.getElementById('editLastName').value = lastName;
+    document.getElementById('editPhone').value = phone;
+
+    const companyContainer = document.getElementById('editCompanySelectContainer');
+    const companySelect = document.getElementById('editCompanySelectInput');
+    if (role === 'client') {
+        companyContainer.classList.remove('d-none');
+        companySelect.setAttribute('required', 'required');
+        companySelect.value = companyId || '';
+    } else {
+        companyContainer.classList.add('d-none');
+        companySelect.removeAttribute('required');
+        companySelect.value = '';
+    }
+
+    const modal = new bootstrap.Modal(document.getElementById('editUserModal'));
+    modal.show();
+}
+
+(function () {
+  'use strict'
+  var forms = document.querySelectorAll('.needs-validation')
+  Array.prototype.slice.call(forms)
+    .forEach(function (form) {
+      form.addEventListener('submit', function (event) {
+        if (!form.checkValidity()) {
+          event.preventDefault()
+          event.stopPropagation()
+        }
+        form.classList.add('was-validated')
+      }, false)
+    })
+})()
+</script>
+{% endblock %}

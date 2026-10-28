@@ -39,13 +39,13 @@
     .task-card:hover { box-shadow: 0 4px 15px rgba(0,0,0,0.1); }
     .task-card.status-pending { border-left-color: #6c757d; }
     .task-card.status-in_progress { border-left-color: #ffc107; }
-    .task-card.status-completed { border-left-color: #28a745; }
+    .task-card.status-completed { border-left-color: #28a754; }
     .task-card.status-approved { border-left-color: #17a2b8; }
     .task-card.status-rejected { border-left-color: #dc3545; }
     
     .task-info { flex: 1; }
     .task-info h6 { margin: 0 0 5px 0; font-weight: 600; }
-    .task-meta { display: flex; gap: 15px; color: #6c757d; font-size: 13px; }
+    .task-meta { display: flex; gap: 15px; color: #6c757d; font-size: 13px; flex-wrap: wrap; }
     .task-meta i { margin-right: 4px; }
     
     .task-actions { display: flex; gap: 8px; align-items: center; }
@@ -71,17 +71,6 @@
     }
     .filter-group { display: flex; gap: 10px; flex-wrap: wrap; align-items: center; }
     
-    .quick-status-btn {
-        padding: 4px 10px;
-        border-radius: 6px;
-        border: 1px solid #dee2e6;
-        background: white;
-        cursor: pointer;
-        font-size: 12px;
-        transition: all 0.2s;
-    }
-    .quick-status-btn:hover { background: #f8f9fa; }
-    
     .empty-state {
         text-align: center;
         padding: 60px 20px;
@@ -104,21 +93,24 @@
 {% endblock %}
 
 {% block content %}
-<div class="d-flex justify-content-between align-items-center mb-4">
+<div class="d-flex justify-content-between align-items-center mb-4 flex-wrap gap-2">
     <div>
         <h2><i class="bi bi-list-task me-2"></i>დავალებები</h2>
-        <p class="text-muted mb-0">სულ: {{ tasks.count }} დავალება</p>
+        <p class="text-muted mb-0">ნაჩვენებია: {{ tasks.count }} დავალება</p>
     </div>
-    <div class="d-flex gap-2">
+    <div class="d-flex gap-2 flex-wrap">
+        <a href="/reports/monthly/" class="btn btn-outline-info">
+            <i class="bi bi-bar-chart-line"></i> თვიური რეპორტი
+        </a>
+        <a href="/reports/excel/" class="btn btn-outline-success">
+            <i class="bi bi-file-earmark-excel"></i> Excel რეპორტი
+        </a>
         <a href="{% url 'calendar' %}" class="btn btn-outline-primary">
             <i class="bi bi-calendar3"></i> კალენდარი
         </a>
-        <form method="POST" action="{% url 'generate_tasks' %}" class="d-inline">
-            {% csrf_token %}
-            <button type="submit" class="btn btn-success">
-                <i class="bi bi-magic"></i> ტასკების გენერაცია
-            </button>
-        </form>
+        <button type="button" class="btn btn-success" data-bs-toggle="modal" data-bs-target="#generateTasksModal">
+            <i class="bi bi-magic"></i> ტასკების გენერაცია
+        </button>
     </div>
 </div>
 
@@ -143,6 +135,10 @@
     <div class="stat-card {% if request.GET.status == 'approved' %}active{% endif %}" onclick="filterByStatus('approved')" style="border-bottom: 3px solid #17a2b8;">
         <h3 style="color: #17a2b8;">{{ stats.approved }}</h3>
         <small>დამტკიცებული</small>
+    </div>
+    <div class="stat-card {% if request.GET.status == 'rejected' %}active{% endif %}" onclick="filterByStatus('rejected')" style="border-bottom: 3px solid #dc3545;">
+        <h3 style="color: #dc3545;">{{ stats.rejected }}</h3>
+        <small>უარყოფილი</small>
     </div>
 </div>
 
@@ -260,6 +256,44 @@
         <p>გამოიყენეთ "ტასკების გენერაცია" ღილაკი ახლის შესაქმნელად</p>
     </div>
     {% endfor %}
+</div>
+
+<!-- Generate Tasks Modal -->
+<div class="modal fade" id="generateTasksModal" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header bg-success text-white">
+                <h5 class="modal-title"><i class="bi bi-magic me-2"></i>ტასკების გენერაცია გრაფიკიდან</h5>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+            </div>
+            <form method="POST" action="{% url 'generate_tasks' %}">
+                {% csrf_token %}
+                <div class="modal-body">
+                    <p class="text-muted small">
+                        სისტემა ავტომატურად შექმნის მომდევნო პერიოდის გეგმიურ დავალებებს ყველა აქტიური გრაფიკის მიხედვით (დუბლირების გარეშე).
+                    </p>
+                    <div class="mb-3">
+                        <label class="form-label">აირჩიეთ პასუხისმგებელი ინსპექტორი *</label>
+                        <select name="inspector" class="form-select" required>
+                            {% for inspector in inspectors %}
+                            <option value="{{ inspector.id }}">
+                                {{ inspector.get_full_name|default:inspector.username }} ({{ inspector.username }})
+                            </option>
+                            {% empty %}
+                            <option value="" disabled selected>ინსპექტორი არ მოიძებნა</option>
+                            {% endfor %}
+                        </select>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">გაუქმება</button>
+                    <button type="submit" class="btn btn-success" {% if not inspectors %}disabled{% endif %}>
+                        <i class="bi bi-magic"></i> გენერაცია
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
 </div>
 
 <!-- Edit Task Modal -->
@@ -407,7 +441,6 @@ function openTaskModal(taskId) {
         document.getElementById('edit_inspector').value = data.assigned_to_id || '';
         document.getElementById('edit_status').value = data.status || 'pending';
         
-        // Show report section if task is completed
         const reportSection = document.getElementById('reportSection');
         const photosSection = document.getElementById('photosSection');
         const reportComment = document.getElementById('reportComment');
@@ -417,7 +450,6 @@ function openTaskModal(taskId) {
             reportSection.style.display = 'block';
             reportComment.textContent = data.report.comment || 'კომენტარი არ არის';
             
-            // Display photos
             if (data.report.photos && data.report.photos.length > 0) {
                 photosSection.style.display = 'block';
                 taskPhotos.innerHTML = '';
@@ -447,7 +479,6 @@ function openTaskModal(taskId) {
     });
 }
 
-// Open photo in full size
 function openPhotoModal(photoUrl) {
     document.getElementById('photoImage').src = photoUrl;
     new bootstrap.Modal(document.getElementById('photoModal')).show();

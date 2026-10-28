@@ -2,9 +2,12 @@
 <html lang="ka">
 <head>
     <meta charset="UTF-8">
-    <title>{% block title %}Manager System{% endblock %}</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="theme-color" content="#0d6efd">
+    <title>{% block title %}IMPOSTI Manager{% endblock %}</title>
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.0/font/bootstrap-icons.css">
+    <link rel="manifest" href="/static/manifest.json">
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     {% block extra_css %}{% endblock %}
     <style>
@@ -67,6 +70,7 @@
         <div class="container-fluid">
             <a class="navbar-brand d-flex align-items-center" href="/manager/">
                 <img src="/static/images/logo.png" alt="IMPOSTI" height="40" class="me-2" style="filter: brightness(1.1);">
+                <span class="fw-bold">IMPOSTI</span>
             </a>
             <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav" aria-controls="navbarNav" aria-expanded="false" aria-label="Toggle navigation">
                 <span class="navbar-toggler-icon"></span>
@@ -78,6 +82,9 @@
                     </li>
                     <li class="nav-item">
                         <a class="nav-link" href="/manager/companies/">კომპანიები</a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" href="/manager/users/">მომხმარებლები</a>
                     </li>
                     <li class="nav-item">
                         <a class="nav-link" href="/manager/sites/">ობიექტები</a>
@@ -144,7 +151,7 @@
             const currentPath = window.location.pathname;
             document.querySelectorAll('.navbar-nav .nav-link').forEach(link => {
                 const href = link.getAttribute('href');
-                if (href && (currentPath === href || currentPath.startsWith(href + '/'))) {
+                if (href && (currentPath === href || (href !== '/manager/' && currentPath.startsWith(href)))) {
                     link.classList.add('active');
                 } else {
                     link.classList.remove('active');
@@ -196,26 +203,21 @@
                 .catch(() => {});
         }
         
-        // Load on page load
         document.addEventListener('DOMContentLoaded', function() {
             loadNotifications();
-            
-            // Set active nav link based on current URL
-            const currentUrl = window.location.pathname;
-            const navLinks = document.querySelectorAll('.navbar-nav .nav-link');
-            
-            navLinks.forEach(link => {
-                const href = link.getAttribute('href');
-                if (currentUrl === href || currentUrl.startsWith(href + '/')) {
-                    link.classList.add('active');
-                } else {
-                    link.classList.remove('active');
-                }
-            });
         });
         
         // Refresh every 30 seconds
         setInterval(loadNotifications, 30000);
+        
+        // Register PWA Service Worker
+        if ('serviceWorker' in navigator) {
+            window.addEventListener('load', () => {
+                navigator.serviceWorker.register('/static/sw.js')
+                    .then(reg => console.log('Service Worker registered', reg))
+                    .catch(err => console.log('Service Worker registration failed', err));
+            });
+        }
     </script>
     {% block extra_js %}{% endblock %}
 </body>

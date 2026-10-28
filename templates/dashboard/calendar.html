@@ -1,4 +1,4 @@
-{% extends 'manager/base.html' %}
+{% extends base_template|default:'manager/base.html' %}
 
 {% block title %}კალენდარი{% endblock %}
 
@@ -41,11 +41,13 @@
             <h2><i class="bi bi-calendar3 me-2"></i>ინტერაქტიული კალენდარი</h2>
             <p class="text-muted">დააჭირე დღეს ახალი დავალების შესაქმნელად ან არსებულზე რედაქტირებისთვის</p>
         </div>
+        {% if request.user.role == 'manager' %}
         <div class="col-md-6 text-end">
             <button class="btn btn-success btn-lg" data-bs-toggle="modal" data-bs-target="#addTaskModal">
                 <i class="bi bi-plus-circle me-1"></i> ახალი დავალება
             </button>
         </div>
+        {% endif %}
     </div>
 
     <div class="stats-bar">
@@ -110,7 +112,7 @@
                         </div>
                         <div class="col-md-6 mb-3">
                             <label class="form-label"><i class="bi bi-person me-1"></i>ინსპექტორი *</label>
-                            <select id="task_inspector" class="form-select form-select-lg" required>
+                            <select id="task_inspector" class="form-select form-select-lg" required {% if request.user.role != 'manager' %}disabled{% endif %}>
                                 <option value="">აირჩიე</option>
                                 {% for inspector in inspectors %}<option value="{{ inspector.id }}">{{ inspector.get_full_name|default:inspector.username }}</option>{% endfor %}
                             </select>
@@ -122,18 +124,27 @@
                             <option value="pending">🔘 მოლოდინში</option>
                             <option value="in_progress">🟡 მიმდინარე</option>
                             <option value="completed">🟢 დასრულებული</option>
+                            {% if request.user.role == 'manager' %}
                             <option value="approved">🔵 დამტკიცებული</option>
                             <option value="rejected">🔴 უარყოფილი</option>
+                            {% endif %}
                         </select>
                     </div>
                     <div class="quick-actions">
                         <button type="button" class="btn btn-outline-warning" onclick="setStatus('in_progress')"><i class="bi bi-play-fill"></i> დაწყება</button>
                         <button type="button" class="btn btn-outline-success" onclick="setStatus('completed')"><i class="bi bi-check-lg"></i> დასრულება</button>
+                        {% if request.user.role == 'manager' %}
                         <button type="button" class="btn btn-outline-info" onclick="setStatus('approved')"><i class="bi bi-hand-thumbs-up"></i> დამტკიცება</button>
+                        {% endif %}
                     </div>
                 </div>
                 <div class="modal-footer">
+                    <a href="#" id="task_detail_link" class="btn btn-outline-primary me-auto">
+                        <i class="bi bi-box-arrow-up-right"></i> დავალების გვერდი
+                    </a>
+                    {% if request.user.role == 'manager' %}
                     <button type="button" class="btn btn-danger" onclick="deleteTask()"><i class="bi bi-trash"></i> წაშლა</button>
+                    {% endif %}
                     <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">გაუქმება</button>
                     <button type="submit" class="btn btn-primary btn-lg"><i class="bi bi-check-circle"></i> შენახვა</button>
                 </div>
@@ -195,6 +206,7 @@
 <script src='https://cdn.jsdelivr.net/npm/fullcalendar@6.1.10/index.global.min.js'></script>
 <script>
 let calendar, allEvents = [];
+const isManager = {{ request.user.role|default:""|yesno:"true,false" }} && "{{ request.user.role }}" === "manager";
 
 document.addEventListener('DOMContentLoaded', function() {
     calendar = new FullCalendar.Calendar(document.getElementById('calendar'), {
@@ -214,7 +226,11 @@ document.addEventListener('DOMContentLoaded', function() {
         },
         eventClick: function(info) { info.jsEvent.preventDefault(); loadTaskDetails(info.event.id); },
         eventDrop: function(info) { updateTaskDate(info.event.id, info.event.start); },
-        dateClick: function(info) { document.getElementById('add_date').value = info.dateStr + 'T09:00'; new bootstrap.Modal(document.getElementById('addTaskModal')).show(); },
+        dateClick: function(info) {
+            if (!isManager) return;
+            document.getElementById('add_date').value = info.dateStr + 'T09:00';
+            new bootstrap.Modal(document.getElementById('addTaskModal')).show();
+        },
         eventDidMount: function(info) { info.el.title = info.event.title + ' (დააჭირე რედაქტირებისთვის)'; }
     });
     calendar.render();
@@ -243,6 +259,7 @@ function clearFilters() {
 function loadTaskDetails(taskId) {
     fetch('/task-detail/' + taskId + '/').then(r => r.json()).then(data => {
         document.getElementById('task_id').value = taskId;
+        document.getElementById('task_detail_link').href = '/tasks/' + taskId + '/';
         document.getElementById('task_site').textContent = data.equipment_name ? data.equipment_name.split(' - ')[0] : '-';
         document.getElementById('task_equipment').textContent = data.equipment_name || '-';
         document.getElementById('task_name').textContent = data.schedule_name || '-';

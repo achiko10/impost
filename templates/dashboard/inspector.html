@@ -2,42 +2,125 @@
 
 {% block title %}ინსპექტორის პანელი{% endblock %}
 
+{% block extra_css %}
+<style>
+    .stat-box {
+        background: white;
+        border-radius: 12px;
+        padding: 16px;
+        text-align: center;
+        box-shadow: 0 2px 8px rgba(0,0,0,0.06);
+        cursor: pointer;
+        text-decoration: none;
+        display: block;
+        color: inherit;
+        transition: transform 0.2s, box-shadow 0.2s;
+        border-bottom: 3px solid transparent;
+    }
+    .stat-box:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+        color: inherit;
+    }
+    .stat-box.active {
+        border-color: #0d6efd;
+        background: #f8fbff;
+    }
+    .stat-box h3 {
+        margin: 0;
+        font-weight: 700;
+        font-size: 26px;
+    }
+    .stat-box small {
+        color: #6c757d;
+        font-size: 13px;
+    }
+</style>
+{% endblock %}
+
 {% block content %}
-<div class="row mb-4">
-    <div class="col">
-        <h2><i class="bi bi-clipboard-check"></i> ჩემი დავალებები</h2>
-        <p class="text-muted mb-0">👤 ინსპექტორი: <strong>{{ request.user.get_full_name|default:request.user.username }}</strong></p>
+<div class="row mb-4 align-items-center">
+    <div class="col-md-6">
+        <h2><i class="bi bi-clipboard-check text-primary"></i> ჩემი დავალებები</h2>
+        <p class="text-muted mb-0">ინსპექტორი: <strong>{{ request.user.get_full_name|default:request.user.username }}</strong></p>
+    </div>
+    <div class="col-md-6 mt-3 mt-md-0">
+        <form method="GET" class="d-flex gap-2">
+            {% if status_filter %}
+            <input type="hidden" name="status" value="{{ status_filter }}">
+            {% endif %}
+            <div class="input-group">
+                <span class="input-group-text bg-white"><i class="bi bi-search"></i></span>
+                <input type="text" name="search" class="form-control" placeholder="ძებნა (ობიექტი, დანადგარი, დავალება)..." value="{{ search }}">
+                <button type="submit" class="btn btn-primary">ძებნა</button>
+                {% if search or status_filter %}
+                <a href="{% url 'inspector_dashboard' %}" class="btn btn-outline-secondary">გასუფთავება</a>
+                {% endif %}
+            </div>
+        </form>
+    </div>
+</div>
+
+<!-- Stats / Filter Cards -->
+<div class="row g-3 mb-4">
+    <div class="col-6 col-md">
+        <a href="?{% if search %}search={{ search }}{% endif %}" class="stat-box {% if not status_filter %}active{% endif %}">
+            <h3>{{ stats.total }}</h3>
+            <small>სულ</small>
+        </a>
+    </div>
+    <div class="col-6 col-md">
+        <a href="?status=pending{% if search %}&search={{ search }}{% endif %}" class="stat-box {% if status_filter == 'pending' %}active{% endif %}">
+            <h3 class="text-secondary">{{ stats.pending }}</h3>
+            <small>მოლოდინში</small>
+        </a>
+    </div>
+    <div class="col-6 col-md">
+        <a href="?status=in_progress{% if search %}&search={{ search }}{% endif %}" class="stat-box {% if status_filter == 'in_progress' %}active{% endif %}">
+            <h3 class="text-warning">{{ stats.in_progress }}</h3>
+            <small>მიმდინარე</small>
+        </a>
+    </div>
+    <div class="col-6 col-md">
+        <a href="?status=rejected{% if search %}&search={{ search }}{% endif %}" class="stat-box {% if status_filter == 'rejected' %}active{% endif %}">
+            <h3 class="text-danger">{{ stats.rejected }}</h3>
+            <small>უარყოფილი</small>
+        </a>
+    </div>
+    <div class="col-6 col-md">
+        <a href="?status=done{% if search %}&search={{ search }}{% endif %}" class="stat-box {% if status_filter == 'done' %}active{% endif %}">
+            <h3 class="text-success">{{ stats.completed }}</h3>
+            <small>დასრულებული</small>
+        </a>
     </div>
 </div>
 
 <div class="row">
     {% for task in tasks %}
     <div class="col-md-6 mb-3">
-        <div class="card">
-            <div class="card-header bg-{% if task.status == 'completed' or task.status == 'approved' %}success{% elif task.status == 'in_progress' %}warning{% else %}secondary{% endif %} text-white">
+        <div class="card h-100 shadow-sm">
+            <div class="card-header bg-{% if task.status == 'completed' or task.status == 'approved' %}success{% elif task.status == 'in_progress' %}warning text-dark{% elif task.status == 'rejected' %}danger{% else %}secondary{% endif %} text-white d-flex justify-content-between align-items-center">
                 <h5 class="mb-0">{{ task.schedule.task_name }}</h5>
+                <span class="badge bg-light text-dark">{{ task.get_status_display }}</span>
             </div>
-            <div class="card-body">
-                <p><strong>ობიექტი:</strong> {{ task.schedule.equipment.site.name }}</p>
-                <p><strong>დანადგარი:</strong> {{ task.schedule.equipment.name }}</p>
-                <p><strong>დაგეგმილი თარიღი:</strong> {{ task.scheduled_date|date:"d M Y, H:i" }}</p>
-                <p>
-                    <span class="badge bg-{% if task.status == 'completed' or task.status == 'approved' %}success{% elif task.status == 'in_progress' %}warning{% else %}secondary{% endif %}">
-                        {{ task.get_status_display }}
-                    </span>
-                </p>
-                
+            <div class="card-body d-flex flex-column justify-content-between">
+                <div>
+                    <p class="mb-1"><strong><i class="bi bi-building me-1"></i>კომპანია / ობიექტი:</strong> {{ task.schedule.equipment.site.company.name }} — {{ task.schedule.equipment.site.name }}</p>
+                    <p class="mb-1"><strong><i class="bi bi-gear me-1"></i>დანადგარი:</strong> {{ task.schedule.equipment.name }}</p>
+                    <p class="mb-3"><strong><i class="bi bi-calendar-event me-1"></i>დაგეგმილი თარიღი:</strong> {{ task.scheduled_date|date:"d M Y, H:i" }}</p>
+                </div>
+
                 <div class="d-flex gap-2">
-                    {% if task.status == 'pending' or task.status == 'in_progress' %}
-                    <a href="/tasks/{{ task.id }}/" class="btn btn-primary">
-                        <i class="bi bi-pencil-square"></i> შესრულება
+                    {% if task.status == 'pending' or task.status == 'in_progress' or task.status == 'rejected' %}
+                    <a href="/tasks/{{ task.id }}/" class="btn btn-{% if task.status == 'rejected' %}danger{% else %}primary{% endif %}">
+                        <i class="bi bi-pencil-square"></i> {% if task.status == 'rejected' %}გამოსწორება{% elif task.status == 'in_progress' %}გაგრძელება{% else %}შესრულება{% endif %}
                     </a>
                     {% else %}
-                    <a href="/tasks/{{ task.id }}/" class="btn btn-success">
+                    <a href="/tasks/{{ task.id }}/" class="btn btn-outline-success">
                         <i class="bi bi-eye"></i> ნახვა
                     </a>
                     <a href="/reports/task/{{ task.id }}/pdf/" class="btn btn-danger">
-                        <i class="bi bi-file-earmark-pdf"></i> PDF
+                        <i class="bi bi-file-earmark-pdf"></i> PDF აქტი
                     </a>
                     {% endif %}
                 </div>
@@ -47,7 +130,7 @@
     {% empty %}
     <div class="col-12">
         <div class="alert alert-info">
-            <i class="bi bi-info-circle"></i> დავალებები არ არის
+            <i class="bi bi-info-circle"></i> დავალებები არ მოიძებნა
         </div>
     </div>
     {% endfor %}

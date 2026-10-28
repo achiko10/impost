@@ -1,116 +1,175 @@
 from django.core.management.base import BaseCommand
+from apps.accounts.models import Tenant, User
 from apps.companies.models import Company, Site, Equipment, EquipmentCategory
-from apps.tasks.models import Schedule
+from apps.tasks.models import MaintenanceSchedule
 
 
 class Command(BaseCommand):
     help = "Load real McDonald's data"
 
     def handle(self, *args, **options):
-        # Check if data already exists
-        if Company.objects.filter(name="McDonald's Georgia").exists():
-            self.stdout.write("Data already exists, skipping...")
-            return
+        default_tenant, _ = Tenant.objects.get_or_create(name="IMPOSTI")
 
-        self.stdout.write("Creating real data...")
+        self.stdout.write("Ensuring real McDonald's data...")
 
-        # 1. Create Company
-        company = Company.objects.create(
+        # 1. Get or Create Company
+        company, _ = Company.objects.get_or_create(
             name="McDonald's Georgia",
-            contact_person="",
-            email="",
-            phone="",
+            defaults={"tenant": default_tenant},
         )
-        self.stdout.write(self.style.SUCCESS(f"✅ Company: {company.name}"))
+        if not company.tenant_id:
+            company.tenant = default_tenant
+            company.save(update_fields=["tenant"])
+        self.stdout.write(self.style.SUCCESS(f"[OK] Company: {company.name}"))
 
-        # 2. Create Site
-        site = Site.objects.create(
+        # Link client1 to McDonald's Georgia if present
+        User.objects.filter(username="client1", company__isnull=True).update(
+            company=company, tenant=default_tenant
+        )
+
+        # 2. Get or Create Site
+        site, _ = Site.objects.get_or_create(
             company=company,
             name="McDonald's ერისთავი",
-            address="ერისთავის 1",
+            defaults={"address": "ერისთავის 1"},
         )
-        self.stdout.write(self.style.SUCCESS(f"✅ Site: {site.name}"))
+        self.stdout.write(self.style.SUCCESS("[OK] Site created/verified"))
 
-        # 3. Create Categories
+        # 3. Create Categories (with unique code)
         hvac_cat, _ = EquipmentCategory.objects.get_or_create(
-            name="HVAC",
-            defaults={"description": "გათბობა, ვენტილაცია, კონდიცირება"}
+            code="HVAC",
+            defaults={
+                "name": "HVAC",
+                "system_type": "hvac",
+                "icon": "bi-thermometer-half",
+                "color": "#0d6efd",
+                "description": "გათბობა, ვენტილაცია, კონდიცირება",
+                "display_order": 1,
+            },
         )
-        
+
         ventilation_cat, _ = EquipmentCategory.objects.get_or_create(
-            name="ვენტილაცია",
-            defaults={"description": "ვენტილაციის სისტემები"}
+            code="VENT",
+            defaults={
+                "name": "ვენტილაცია",
+                "system_type": "ventilation",
+                "icon": "bi-fan",
+                "color": "#198754",
+                "description": "ვენტილაციის სისტემები",
+                "display_order": 2,
+            },
         )
-        
+
         split_cat, _ = EquipmentCategory.objects.get_or_create(
-            name="სპლიტ სისტემა",
-            defaults={"description": "სპლიტ კონდიციონერები"}
+            code="SPLIT",
+            defaults={
+                "name": "სპლიტ სისტემა",
+                "system_type": "hvac",
+                "icon": "bi-snow",
+                "color": "#0dcaf0",
+                "description": "სპლიტ კონდიციონერები",
+                "display_order": 3,
+            },
         )
-        self.stdout.write(self.style.SUCCESS("✅ Categories created"))
+        self.stdout.write(self.style.SUCCESS("[OK] Categories created/verified"))
 
-        # 4. Create Equipment
+        # 4. Create Equipment (idempotently)
+        eq_specs = [
+            {
+                "category": hvac_cat,
+                "name": "Rooftop #1",
+                "brand": "Clivet",
+                "model_number": "Clivet",
+                "serial_number": "AB806M5A0296",
+                "system_type": "heating_cooling",
+                "status": "active",
+                "location_detail": "სახურავი",
+            },
+            {
+                "category": hvac_cat,
+                "name": "Rooftop #2",
+                "brand": "Clivet",
+                "model_number": "Clivet",
+                "serial_number": "AB806M5A0297",
+                "system_type": "heating_cooling",
+                "status": "active",
+                "location_detail": "სახურავი",
+            },
+            {
+                "category": hvac_cat,
+                "name": "Rooftop #3",
+                "brand": "Clivet",
+                "model_number": "Clivet",
+                "serial_number": "",
+                "system_type": "heating_cooling",
+                "status": "active",
+                "location_detail": "სახურავი",
+            },
+            {
+                "category": ventilation_cat,
+                "name": "KEF Ventilation #1",
+                "brand": "Termofan",
+                "model_number": "Termofan",
+                "serial_number": "TS25-0051-0125",
+                "system_type": "ventilation",
+                "status": "active",
+                "location_detail": "სამზარეულო",
+            },
+            {
+                "category": ventilation_cat,
+                "name": "KEF Ventilation #2",
+                "brand": "Termofan",
+                "model_number": "Termofan",
+                "serial_number": "",
+                "system_type": "ventilation",
+                "status": "active",
+                "location_detail": "სამზარეულო",
+            },
+            {
+                "category": split_cat,
+                "name": "სპლიტ კონდიციონერი #1",
+                "brand": "",
+                "model_number": "",
+                "serial_number": "",
+                "system_type": "heating_cooling",
+                "status": "active",
+                "location_detail": "დარბაზი",
+            },
+            {
+                "category": split_cat,
+                "name": "სპლიტ კონდიციონერი #2",
+                "brand": "",
+                "model_number": "",
+                "serial_number": "",
+                "system_type": "heating_cooling",
+                "status": "active",
+                "location_detail": "ოფისი",
+            },
+        ]
 
-        # Rooftop (Clivet) - 3 units
-        Equipment.objects.create(
-            site=site,
-            category=hvac_cat,
-            name="Rooftop #1",
-            model="Clivet",
-            serial_number="AB806M5A0296",
-            status="operational",
-        )
-        Equipment.objects.create(
-            site=site,
-            category=hvac_cat,
-            name="Rooftop #2",
-            model="Clivet",
-            serial_number="AB806M5A0297",
-            status="operational",
-        )
-        Equipment.objects.create(
-            site=site,
-            category=hvac_cat,
-            name="Rooftop #3",
-            model="Clivet",
-            serial_number="",
-            status="operational",
+        eq_items = []
+        for spec in eq_specs:
+            eq, _ = Equipment.objects.get_or_create(
+                site=site,
+                name=spec["name"],
+                defaults=spec,
+            )
+            eq_items.append(eq)
+
+        self.stdout.write(
+            self.style.SUCCESS(f"[OK] {len(eq_items)} Equipment items verified")
         )
 
-        # KEF Ventilation (Termofan) - 2 units
-        Equipment.objects.create(
-            site=site,
-            category=ventilation_cat,
-            name="KEF Ventilation #1",
-            model="Termofan",
-            serial_number="TS25-0051-0125",
-            status="operational",
+        # 5. Create default Maintenance Schedules for equipment
+        for eq in eq_items:
+            MaintenanceSchedule.objects.get_or_create(
+                equipment=eq,
+                task_name="ყოველთვიური გეგმიური შემოწმება და ფილტრების წმენდა",
+                defaults={"frequency": "monthly"},
+            )
+        self.stdout.write(
+            self.style.SUCCESS("[OK] Default maintenance schedules verified")
         )
-        Equipment.objects.create(
-            site=site,
-            category=ventilation_cat,
-            name="KEF Ventilation #2",
-            model="Termofan",
-            serial_number="",
-            status="operational",
+        self.stdout.write(
+            self.style.SUCCESS("\n=== All McDonald's data loaded! ===")
         )
-
-        # Split AC - 2 units
-        Equipment.objects.create(
-            site=site,
-            category=split_cat,
-            name="სპლიტ კონდიციონერი #1",
-            model="",
-            serial_number="",
-            status="operational",
-        )
-        Equipment.objects.create(
-            site=site,
-            category=split_cat,
-            name="სპლიტ კონდიციონერი #2",
-            model="",
-            serial_number="",
-            status="operational",
-        )
-        self.stdout.write(self.style.SUCCESS("✅ 7 Equipment items created"))
-
-        self.stdout.write(self.style.SUCCESS("\n=== All McDonald's data loaded! ==="))

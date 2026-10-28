@@ -8,20 +8,8 @@
             size: A4;
             margin: 1.5cm;
         }
-        @font-face {
-            font-family: 'Noto Sans Georgian';
-            src: url('https://fonts.gstatic.com/s/notosansgeorgian/v42/PlIaFke5O6RzLfvNNVSitxkr76PRHBC4Ytyq-Gof7PUs4S7zWn-8YDB09HFNdpvnzFj-f5WK0OQV.woff2') format('woff2');
-            font-weight: normal;
-            font-style: normal;
-        }
-        @font-face {
-            font-family: 'Noto Sans Georgian';
-            src: url('https://fonts.gstatic.com/s/notosansgeorgian/v42/PlIhFke5O6RzLfvNNVSitxkr76PRHBC4Ytyq-Gof7PUs4S7zWn-8YDB09HFNdpvnzFj-f5WK0OQV.woff2') format('woff2');
-            font-weight: bold;
-            font-style: normal;
-        }
         * {
-            font-family: 'Noto Sans Georgian', 'DejaVu Sans', Arial, sans-serif;
+            font-family: GeorgianFont, 'Sylfaen', Arial, sans-serif;
         }
         body {
             font-size: 11pt;
@@ -284,7 +272,7 @@
     </div>
     
     <div class="footer">
-        გენერირებული: {{ generated_at|date:"d.m.Y H:i" }} | Maintenance Management System
+        გენერირებული: {{ generated_at|date:"d.m.Y H:i" }} | IMPOSTI Maintenance Management System
     </div>
 </body>
 </html>

@@ -1,13 +1,19 @@
-{% extends 'manager/base.html' %}
+{% extends base_template|default:'manager/base.html' %}
 
 {% block title %}{{ equipment.name }} - ისტორია{% endblock %}
 
 {% block content %}
 <div class="d-flex justify-content-between align-items-center mb-4">
     <div>
+        {% if request.user.role == 'manager' %}
         <a href="/manager/equipment/" class="text-decoration-none text-muted">
             <i class="bi bi-arrow-left"></i> დანადგარები
         </a>
+        {% else %}
+        <a href="/dashboard/" class="text-decoration-none text-muted">
+            <i class="bi bi-arrow-left"></i> უკან
+        </a>
+        {% endif %}
         <h2 class="mt-2"><i class="bi bi-gear"></i> {{ equipment.name }}</h2>
     </div>
     <button onclick="window.print()" class="btn btn-outline-primary">
@@ -52,7 +58,7 @@
         <h5 class="mb-0"><i class="bi bi-clock-history"></i> მომსახურების ისტორია</h5>
     </div>
     <div class="card-body p-0">
-        <table class="table table-hover mb-0">
+        <table class="table table-hover mb-0 align-middle">
             <thead class="table-light">
                 <tr>
                     <th>თარიღი</th>
@@ -60,6 +66,7 @@
                     <th>ინსპექტორი</th>
                     <th>სტატუსი</th>
                     <th>კომენტარი</th>
+                    <th>აქტი</th>
                 </tr>
             </thead>
             <tbody>
@@ -67,7 +74,7 @@
                 <tr>
                     <td>{{ task.scheduled_date|date:"d.m.Y" }}</td>
                     <td>{{ task.schedule.task_name }}</td>
-                    <td>{{ task.assigned_to.username|default:"-" }}</td>
+                    <td>{{ task.assigned_to.get_full_name|default:task.assigned_to.username|default:"-" }}</td>
                     <td>
                         <span class="badge 
                             {% if task.status == 'pending' %}bg-warning text-dark
@@ -85,10 +92,19 @@
                         <span class="text-muted">-</span>
                         {% endif %}
                     </td>
+                    <td>
+                        {% if task.status == 'completed' or task.status == 'approved' %}
+                        <a href="/reports/task/{{ task.id }}/pdf/" class="btn btn-sm btn-outline-danger" title="PDF სერვისის აქტი">
+                            <i class="bi bi-file-earmark-pdf"></i>
+                        </a>
+                        {% else %}
+                        <span class="text-muted">-</span>
+                        {% endif %}
+                    </td>
                 </tr>
                 {% empty %}
                 <tr>
-                    <td colspan="5" class="text-center text-muted py-4">
+                    <td colspan="6" class="text-center text-muted py-4">
                         მომსახურების ისტორია არ არის
                     </td>
                 </tr>

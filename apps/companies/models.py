@@ -2,6 +2,13 @@ from django.db import models
 
 
 class Company(models.Model):
+    tenant = models.ForeignKey(
+        "accounts.Tenant",
+        on_delete=models.CASCADE,
+        null=True,
+        blank=True,
+        related_name="companies"
+    )
     name = models.CharField(max_length=200)
     created_at = models.DateTimeField(auto_now_add=True)
 

@@ -1,8 +1,8 @@
 from django.contrib import admin
-from django.urls import path, include
+from django.urls import path, include, re_path
 from django.views.generic import RedirectView
+from django.views.static import serve
 from django.conf import settings
-from django.conf.urls.static import static
 
 urlpatterns = [
     # Redirect root to dashboard
@@ -11,9 +11,8 @@ urlpatterns = [
     path("", include("apps.accounts.urls")),
     path("", include("apps.tasks.urls")),
     path("", include("apps.companies.urls")),
-    path("", include("apps.notifications.urls")),  # Notifications
+    path("", include("apps.notifications.urls")),
     path("reports/", include("apps.reports.urls")),
+    # Serve uploaded media files in both dev and production (Gunicorn/Render/Railway)
+    re_path(r"^media/(?P<path>.*)$", serve, {"document_root": settings.MEDIA_ROOT}),
 ]
-
-if settings.DEBUG:
-    urlpatterns += static(settings.MEDIA_URL, document_root=settings.MEDIA_ROOT)
